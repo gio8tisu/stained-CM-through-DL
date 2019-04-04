@@ -6,9 +6,8 @@ import numpy as np
 class Numpy2Vips:
     """numpy array to vips image."""
 
-    def __init__(self):
-        # map np dtypes to vips
-        self.dtype_to_format = {
+    # map np dtypes to vips
+    dtype_to_format = {
             'uint8': 'uchar',
             'int8': 'char',
             'uint16': 'ushort',
@@ -19,7 +18,7 @@ class Numpy2Vips:
             'float64': 'double',
             'complex64': 'complex',
             'complex128': 'dpcomplex',
-        }
+    }
 
     def __call__(self, *args, **kwargs):
         return self.numpy2vips(args[0])
@@ -35,9 +34,8 @@ class Numpy2Vips:
 class Vips2Numpy:
     """vips image to numpy array."""
 
-    def __init__(self, scale_by=1):
-        # map vips formats to np dtypes
-        self.format_to_dtype = {
+    # map vips formats to np dtypes
+    format_to_dtype = {
             'uchar': np.uint8,
             'char': np.int8,
             'ushort': np.uint16,
@@ -48,7 +46,9 @@ class Vips2Numpy:
             'double': np.float64,
             'complex': np.complex64,
             'dpcomplex': np.complex128,
-        }
+    }
+
+    def __init__(self, scale_by=1):
         self.scale_by = scale_by
 
     def __call__(self, *args, **kwargs):
