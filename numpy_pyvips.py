@@ -26,9 +26,8 @@ class Numpy2Vips:
     def numpy2vips(self, a):
         height, width, bands = a.shape
         linear = a.reshape(width * height * bands)
-        vi = pyvips.Image.new_from_memory(linear.data, width, height, bands,
-                                          self.dtype_to_format[str(a.dtype)])
-        return vi
+        return pyvips.Image.new_from_memory(linear.data, width, height, bands,
+                                            self.dtype_to_format[str(a.dtype)])
 
 
 class Vips2Numpy:
@@ -48,15 +47,10 @@ class Vips2Numpy:
             'dpcomplex': np.complex128,
     }
 
-    def __init__(self, scale_by=1):
-        self.scale_by = scale_by
-
     def __call__(self, *args, **kwargs):
         return self.vips2numpy(args[0])
 
     def vips2numpy(self, vi):
-        if self.scale_by:
-            vi /= self.scale_by
         return np.ndarray(buffer=vi.write_to_memory(),
                           dtype=self.format_to_dtype[vi.format],
                           shape=[vi.height, vi.width, vi.bands])

@@ -21,41 +21,38 @@ DET#2: R
 '''
 
 
-
-
 def main(args):
     numpy2vips = numpy_pyvips.Numpy2Vips()
-    composed_transform = transforms.Compose([numpy_pyvips.Vips2Numpy(scale_by=65536),
+    composed_transform = transforms.Compose([numpy_pyvips.Vips2Numpy(),
                                              transforms.ToTensor(),
                                              ])
-    dataset = ScansDataset(args.directory, stain=True)
+    dataset = ScansDataset(args.directory, stain=True,
+                           transform_F=transforms.Lambda(lambda x: x / 65535),
+                           transform_R=transforms.Lambda(lambda x: x / 65535))
     G_AB = cyclegan.models.GeneratorResNet(res_blocks=9)
     G_AB.load_state_dict(torch.load('saved_models/%s/G_AB_%d.pth' % (args.dataset_name, args.epoch)))
-    size = 512
-    SAVE_I, SAVE_J = 11264, 3072
+    size = args.patch_size
     for i in range(len(dataset)):
+        if args.verbose:
+            print('Transforming image {} of {}'.format(i + 1, len(dataset)))
         scan = dataset[i]
-        positions = list(product(range(0, scan.width - size - 1, size), range(0, scan.height - size - 1, size)))
-        for position in tqdm.tqdm(positions, total=len(positions)):
-            tile_scan = scan.crop(position[0], position[1], size, size)
-            tile_scan = composed_transform(tile_scan)
-            # guardar tile_scan
-            if position[0] == SAVE_I and position[1] == SAVE_J:
-                imageio.imwrite('tile_scan.png', np.moveaxis(tile_scan.numpy(), 0, 2))
-                print('IMAGE TILE SAVED.')
-            res = G_AB(tile_scan.reshape((1,) + tile_scan.shape))  # reshape first for batch axis
-
-            res_np = res.data.numpy()  # (1, 3, 512, 512)
-            res_np = np.moveaxis(res_np, 1, 3)  # to channels last
-            res_np = res_np[0]
-            # guardar res_np
-            if position[0] == SAVE_I and position[1] == SAVE_J:
-                imageio.imwrite('res_np.png', res_np)
-                print('IMAGE TILE TRANSFORMED SAVED.')
-            res = numpy2vips(res_np) * 65536
-            output_file = os.path.join(args.output, '{}_{}_{}-{}.{}'.format(args.prefix, i, position[0],
-                                                                            position[1], args.format))
-            res.write_to_file(output_file)
+        image = None
+        for x_pos in tqdm.trange(0, scan.width - size - 1, size):
+            ver_image = None
+            for y_pos in range(0, scan.height - size - 1, size):
+                tile_scan = scan.crop(x_pos, y_pos, size, size)  # "grab" square window/patch from image.
+                tile_scan = composed_transform(tile_scan)  # convert to torch tensor and channels first.
+                res = G_AB(tile_scan.reshape((1,) + tile_scan.shape))  # reshape first for batch axis.
+                res_np = res.data.numpy()  # get numpy data
+                res_np = np.moveaxis(res_np, 1, 3)  # to channels last.
+                res_np = (res_np[0] + 1) / 2  # shift pixel values to [0,1] range
+                res = numpy2vips(res_np)  # convert to pyvips.Image
+                ver_image = res if not ver_image else ver_image.join(res, "vertical")  # "stack" vertically
+            image = ver_image if not image else image.join(ver_image, "horizontal")  # "stack" horizontally
+        output_file = os.path.join(args.output, '{}{}_{}-{}.{}'.format(args.prefix, i, x_pos, y_pos, args.format))
+        if args.verbose:
+            print('Saving transformed image to ' + output_file)
+        image.write_to_file(output_file)
 
 
 if __name__ == '__main__':
@@ -69,7 +66,11 @@ if __name__ == '__main__':
     parser.add_argument('--prefix', default='scan', help='output files prefix PREFIX')
     parser.add_argument('--format', default='tif', help='output image format')
     parser.add_argument('--epoch', type=int, default=199, help='epoch to get model from.')
+    parser.add_argument('--patch-size', type=int, default=512, help='size in pixels of patch/window.')
     parser.add_argument('--dataset_name', type=str, default='conf_data6', help='name of the saved model dataset.')
+    parser.add_argument('-v', '--verbose', action='store_true')
 
     args = parser.parse_args()
+    if args.verbose:
+        print(args)
     main(args)

@@ -1,4 +1,9 @@
+import os
+
 import torch
+import pyvips
+
+from transforms import VirtualStainer
 
 
 class ScansDataset(torch.utils.data.Dataset):
@@ -27,7 +32,7 @@ class ScansDataset(torch.utils.data.Dataset):
 
     def __getitem__(self, item):
         """Get CM image.
-        If stain, return stained image. Return both modes otherwise.
+        If stain, return stained image (using transforms.VirtualStainer). Return both modes otherwise.
         """
         f_file = self.scans[item] + '/DET#2/highres_raw.tif'
         r_file = self.scans[item] + '/DET#1/highres_raw.tif'
