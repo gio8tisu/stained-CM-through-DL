@@ -6,9 +6,8 @@ import numpy as np
 class Numpy2Vips:
     """numpy array to vips image."""
 
-    def __init__(self):
-        # map np dtypes to vips
-        self.dtype_to_format = {
+    # map np dtypes to vips
+    dtype_to_format = {
             'uint8': 'uchar',
             'int8': 'char',
             'uint16': 'ushort',
@@ -19,7 +18,7 @@ class Numpy2Vips:
             'float64': 'double',
             'complex64': 'complex',
             'complex128': 'dpcomplex',
-        }
+    }
 
     def __call__(self, *args, **kwargs):
         return self.numpy2vips(args[0])
@@ -27,17 +26,15 @@ class Numpy2Vips:
     def numpy2vips(self, a):
         height, width, bands = a.shape
         linear = a.reshape(width * height * bands)
-        vi = pyvips.Image.new_from_memory(linear.data, width, height, bands,
-                                          self.dtype_to_format[str(a.dtype)])
-        return vi
+        return pyvips.Image.new_from_memory(linear.data, width, height, bands,
+                                            self.dtype_to_format[str(a.dtype)])
 
 
 class Vips2Numpy:
     """vips image to numpy array."""
 
-    def __init__(self, scale_by=1):
-        # map vips formats to np dtypes
-        self.format_to_dtype = {
+    # map vips formats to np dtypes
+    format_to_dtype = {
             'uchar': np.uint8,
             'char': np.int8,
             'ushort': np.uint16,
@@ -48,15 +45,12 @@ class Vips2Numpy:
             'double': np.float64,
             'complex': np.complex64,
             'dpcomplex': np.complex128,
-        }
-        self.scale_by = scale_by
+    }
 
     def __call__(self, *args, **kwargs):
         return self.vips2numpy(args[0])
 
     def vips2numpy(self, vi):
-        if self.scale_by:
-            vi /= self.scale_by
         return np.ndarray(buffer=vi.write_to_memory(),
                           dtype=self.format_to_dtype[vi.format],
                           shape=[vi.height, vi.width, vi.bands])

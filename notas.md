@@ -1,6 +1,6 @@
 ## TODO
-* Probar un notebook (de VGG, resnet, cycleGAN) desde server
-* imatge es el mateix tamany? (0.74)
+* Probar un notebook (de VGG, ResNet, cycleGAN) desde server
+* Imatge es el mateix tamany? (0.74)
 
 ### Milestones
 	Title               | Date (week)
@@ -11,6 +11,7 @@
 	Critical review     | 8
 	Compare results     | 14
 	Final report        | 19
+
 ## Cosas a mirar
 * patchGAN
 * discoGAN
@@ -19,8 +20,9 @@
 
 ## Idees
 * Com evaluar resultats?
+* Incluir filtrado de ruido en red generativa
 * Identity loss
 * U-net
-* encoder -> clustering -> conditional gan
-* gan amb més dun tipus de tinció
-
+* Encoder -> clustering -> conditional gan
+* segmentación "tradictional" --> entrada como nuevo canal
+* gan amb més d'un tipus de tinció
