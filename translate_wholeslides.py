@@ -57,6 +57,7 @@ def main(args):
         output_file = os.path.join(args.output, '{}{}.{}'.format(args.prefix, i, args.format))
         if args.verbose:
             print('Saving transformed image to ' + output_file)
+        scan.write_to_file(output_file)
         if args.save_linear:
             output_file = os.path.join(args.output, '{}{}.{}'.format(args.save_linear, i, args.format))
             if args.verbose:
