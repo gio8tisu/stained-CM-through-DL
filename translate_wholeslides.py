@@ -63,7 +63,6 @@ def main(args):
             if args.verbose:
                 print('Saving linear transform image to ' + output_file)
             scan.write_to_file(output_file)
-        image.write_to_file(output_file)
 
 
 if __name__ == '__main__':
