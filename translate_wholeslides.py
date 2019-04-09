@@ -22,36 +22,46 @@ DET#2: R
 
 
 def main(args):
+    cuda = True if torch.cuda.is_available() else False
     numpy2vips = numpy_pyvips.Numpy2Vips()
-    composed_transform = transforms.Compose([numpy_pyvips.Vips2Numpy(),
+    to_tensor = transforms.Compose([numpy_pyvips.Vips2Numpy(),
                                              transforms.ToTensor(),
                                              ])
     dataset = ScansDataset(args.directory, stain=True,
                            transform_F=transforms.Lambda(lambda x: x / 65535),
                            transform_R=transforms.Lambda(lambda x: x / 65535))
     G_AB = cyclegan.models.GeneratorResNet(res_blocks=9)
+    if cuda:
+        G_AB = G_AB.cuda()
     G_AB.load_state_dict(torch.load('saved_models/%s/G_AB_%d.pth' % (args.dataset_name, args.epoch)))
     size = args.patch_size
     for i in range(len(dataset)):
+        scan = dataset[i]
         if args.verbose:
             print('Transforming image {} of {}'.format(i + 1, len(dataset)))
-        scan = dataset[i]
         image = None
         for x_pos in tqdm.trange(0, scan.width - size - 1, size):
             ver_image = None
             for y_pos in range(0, scan.height - size - 1, size):
                 tile_scan = scan.crop(x_pos, y_pos, size, size)  # "grab" square window/patch from image.
-                tile_scan = composed_transform(tile_scan)  # convert to torch tensor and channels first.
+                tile_scan = to_tensor(tile_scan)  # convert to torch tensor and channels first.
+                if cuda:
+                    tile_scan = tile_scan.cuda()
                 res = G_AB(tile_scan.reshape((1,) + tile_scan.shape))  # reshape first for batch axis.
-                res_np = res.data.numpy()  # get numpy data
+                res_np = res.data.cpu().numpy() if cuda else res.data.numpy()  # get numpy data
                 res_np = np.moveaxis(res_np, 1, 3)  # to channels last.
                 res_np = (res_np[0] + 1) / 2  # shift pixel values to [0,1] range
                 res = numpy2vips(res_np)  # convert to pyvips.Image
                 ver_image = res if not ver_image else ver_image.join(res, "vertical")  # "stack" vertically
             image = ver_image if not image else image.join(ver_image, "horizontal")  # "stack" horizontally
-        output_file = os.path.join(args.output, '{}{}_{}-{}.{}'.format(args.prefix, i, x_pos, y_pos, args.format))
+        output_file = os.path.join(args.output, '{}{}.{}'.format(args.prefix, i, args.format))
         if args.verbose:
             print('Saving transformed image to ' + output_file)
+        if args.save_linear:
+            output_file = os.path.join(args.output, '{}{}.{}'.format(args.save_linear, i, args.format))
+            if args.verbose:
+                print('Saving linear transform image to ' + output_file)
+            scan.write_to_file(output_file)
         image.write_to_file(output_file)
 
 
@@ -67,7 +77,9 @@ if __name__ == '__main__':
     parser.add_argument('--format', default='tif', help='output image format')
     parser.add_argument('--epoch', type=int, default=199, help='epoch to get model from.')
     parser.add_argument('--patch-size', type=int, default=512, help='size in pixels of patch/window.')
-    parser.add_argument('--dataset_name', type=str, default='conf_data6', help='name of the saved model dataset.')
+    parser.add_argument('--dataset-name', type=str, default='conf_data6', help='name of the saved model dataset.')
+    parser.add_argument('--save-linear', metavar='LIN_PREFIX',
+                        help='save linearly stained image (input of model) to LIN_PREFIX.')
     parser.add_argument('-v', '--verbose', action='store_true')
 
     args = parser.parse_args()
