@@ -23,20 +23,20 @@ import torch
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--epoch', type=int, default=0, help='epoch to start training from')
-parser.add_argument('--n_epochs', type=int, default=200, help='number of epochs of training')
-parser.add_argument('--dataset_name', type=str, default="conf_data6", help='name of the dataset')
-parser.add_argument('--batch_size', type=int, default=1, help='size of the batches')
+parser.add_argument('--n-epochs', type=int, default=200, help='number of epochs of training')
+parser.add_argument('--dataset-name', type=str, default='conf_data6', help='name of the dataset')
+parser.add_argument('--batch-size', type=int, default=1, help='size of the batches')
 parser.add_argument('--lr', type=float, default=0.0002, help='adam: learning rate')
 parser.add_argument('--b1', type=float, default=0.5, help='adam: decay of first order momentum of gradient')
-parser.add_argument('--b2', type=float, default=0.999, help='adam: decay of first order momentum of gradient')
-parser.add_argument('--decay_epoch', type=int, default=100, help='epoch from which to start lr decay')
-parser.add_argument('--n_cpu', type=int, default=8, help='number of cpu threads to use during batch generation')
-parser.add_argument('--img_height', type=int, default=256, help='size of image height')
-parser.add_argument('--img_width', type=int, default=256, help='size of image width')
+parser.add_argument('--b2', type=float, default=0.999, help='adam: decay of second order momentum of gradient')
+parser.add_argument('--decay-epoch', type=int, default=100, help='epoch from which to start lr decay')
+parser.add_argument('--n-cpu', type=int, default=8, help='number of cpu threads to use during batch generation')
+parser.add_argument('--img-height', type=int, default=256, help='size of image height')
+parser.add_argument('--img-width', type=int, default=256, help='size of image width')
 parser.add_argument('--channels', type=int, default=3, help='number of image channels')
-parser.add_argument('--sample_interval', type=int, default=100, help='interval between sampling images from generators')
-parser.add_argument('--checkpoint_interval', type=int, default=1, help='interval between saving model checkpoints')
-parser.add_argument('--n_residual_blocks', type=int, default=9, help='number of residual blocks in generator')
+parser.add_argument('--sample-interval', type=int, default=100, help='interval between sampling images from generators')
+parser.add_argument('--checkpoint-interval', type=int, default=1, help='interval between saving model checkpoints')
+parser.add_argument('--n-residual-blocks', type=int, default=9, help='number of residual blocks in generator')
 opt = parser.parse_args()
 print(opt)
 
@@ -134,10 +134,10 @@ val_transforms_A = [ transforms.RandomCrop((int(opt.img_height), int(opt.img_wid
                 transforms.Normalize((0.5,0.5,0.5), (0.5,0.5,0.5)) ]
 
 # Training data loader
-dataloader = DataLoader(ImageDataset("data/%s" % opt.dataset_name, transforms_A=transforms_A, transforms_B=transforms_B, unaligned=True),
+dataloader = DataLoader(ImageDataset('data/%s' % opt.dataset_name, transforms_A=transforms_A, transforms_B=transforms_B, unaligned=True),
                         batch_size=opt.batch_size, shuffle=True, num_workers=opt.n_cpu)
 # Test data loader
-val_dataloader = DataLoader(ImageDataset("data/%s" % opt.dataset_name, transforms_A=val_transforms_A, transforms_B=val_transforms_B, unaligned=True, mode='test'),
+val_dataloader = DataLoader(ImageDataset('data/%s' % opt.dataset_name, transforms_A=val_transforms_A, transforms_B=val_transforms_B, unaligned=True, mode="test"),
                         batch_size=4, shuffle=True, num_workers=1)
 
 
@@ -251,7 +251,7 @@ for epoch in range(opt.epoch, opt.n_epochs):
         prev_time = time.time()
 
         # Print log
-        sys.stdout.write("\r[Epoch %d/%d] [Batch %d/%d] [D loss: %f] [G loss: %f, adv: %f, cycle: %f, identity: %f] ETA: %s" %
+        sys.stdout.write('\r[Epoch %d/%d] [Batch %d/%d] [D loss: %f] [G loss: %f, adv: %f, cycle: %f, identity: %f] ETA: %s' %
                                                         (epoch, opt.n_epochs,
                                                         i, len(dataloader),
                                                         loss_D.item(), loss_G.item(),

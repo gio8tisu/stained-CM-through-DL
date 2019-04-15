@@ -36,8 +36,8 @@ class ScansDataset(torch.utils.data.Dataset):
         """
         f_file = self.scans[item] + '/DET#2/highres_raw.tif'
         r_file = self.scans[item] + '/DET#1/highres_raw.tif'
-        f_img = pyvips.Image.new_from_file(f_file, access='sequential')
-        r_img = pyvips.Image.new_from_file(r_file, access='sequential')
+        f_img = pyvips.Image.new_from_file(f_file)
+        r_img = pyvips.Image.new_from_file(r_file)
 
         if self.transform_F:
             f_img = self.transform_F(f_img)
