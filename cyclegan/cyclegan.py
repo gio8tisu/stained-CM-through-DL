@@ -13,7 +13,7 @@ from torch.utils.data import DataLoader
 from torchvision import datasets
 from torch.autograd import Variable
 
-from models import *
+from .models import *
 from .datasets import *
 from .utils import *
 
@@ -52,7 +52,7 @@ criterion_identity = torch.nn.L1Loss()
 cuda = True if torch.cuda.is_available() else False
 
 # Calculate output of image discriminator (PatchGAN)
-patch = (1, opt.img_height // 2**4, opt.img_width // 2**4)
+patch = (1, opt.img_height // 2 ** 4, opt.img_width // 2 ** 4)
 
 # Initialize generator and discriminator
 G_AB = GeneratorResNet(res_blocks=opt.n_residual_blocks)
@@ -88,14 +88,17 @@ lambda_id = 0.5 * lambda_cyc
 
 # Optimizers
 optimizer_G = torch.optim.Adam(itertools.chain(G_AB.parameters(), G_BA.parameters()),
-                                lr=opt.lr, betas=(opt.b1, opt.b2))
+                               lr=opt.lr, betas=(opt.b1, opt.b2))
 optimizer_D_A = torch.optim.Adam(D_A.parameters(), lr=opt.lr, betas=(opt.b1, opt.b2))
 optimizer_D_B = torch.optim.Adam(D_B.parameters(), lr=opt.lr, betas=(opt.b1, opt.b2))
 
 # Learning rate update schedulers
-lr_scheduler_G = torch.optim.lr_scheduler.LambdaLR(optimizer_G, lr_lambda=LambdaLR(opt.n_epochs, opt.epoch, opt.decay_epoch).step)
-lr_scheduler_D_A = torch.optim.lr_scheduler.LambdaLR(optimizer_D_A, lr_lambda=LambdaLR(opt.n_epochs, opt.epoch, opt.decay_epoch).step)
-lr_scheduler_D_B = torch.optim.lr_scheduler.LambdaLR(optimizer_D_B, lr_lambda=LambdaLR(opt.n_epochs, opt.epoch, opt.decay_epoch).step)
+lr_scheduler_G = torch.optim.lr_scheduler.LambdaLR(optimizer_G,
+                                                   lr_lambda=LambdaLR(opt.n_epochs, opt.epoch, opt.decay_epoch).step)
+lr_scheduler_D_A = torch.optim.lr_scheduler.LambdaLR(optimizer_D_A,
+                                                     lr_lambda=LambdaLR(opt.n_epochs, opt.epoch, opt.decay_epoch).step)
+lr_scheduler_D_B = torch.optim.lr_scheduler.LambdaLR(optimizer_D_B,
+                                                     lr_lambda=LambdaLR(opt.n_epochs, opt.epoch, opt.decay_epoch).step)
 
 Tensor = torch.cuda.FloatTensor if cuda else torch.Tensor
 
@@ -107,38 +110,40 @@ fake_B_buffer = ReplayBuffer()
 relation = 0.65
 
 # Image transformations
-transforms_B = [ transforms.RandomCrop((int(opt.img_height), int(opt.img_width))),
-                #transforms.Resize((int(opt.img_height), int(opt.img_width))),
-                transforms.RandomHorizontalFlip(),
-                 transforms.RandomVerticalFlip(),
-                 transforms.ToTensor(),
-                transforms.Normalize((0.5,0.5,0.5), (0.5,0.5,0.5)) ]
-
-transforms_A = [ transforms.RandomCrop((opt.img_height, opt.img_width)),
+transforms_B = [transforms.RandomCrop((int(opt.img_height), int(opt.img_width))),
+                # transforms.Resize((int(opt.img_height), int(opt.img_width))),
                 transforms.RandomHorizontalFlip(),
                 transforms.RandomVerticalFlip(),
                 transforms.ToTensor(),
-                transforms.Normalize((0.5,0.5,0.5), (0.5,0.5,0.5)) ]
+                transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))]
 
-val_transforms_B = [ transforms.RandomCrop((int(opt.img_height), int(opt.img_width))),
-                     #transforms.Resize((1024, 1024)),
-                     transforms.RandomHorizontalFlip(),
-                 transforms.RandomVerticalFlip(),
-                 transforms.ToTensor(),
-                transforms.Normalize((0.5,0.5,0.5), (0.5,0.5,0.5)) ]
-
-val_transforms_A = [ transforms.RandomCrop((int(opt.img_height), int(opt.img_width))),
+transforms_A = [transforms.RandomCrop((opt.img_height, opt.img_width)),
                 transforms.RandomHorizontalFlip(),
                 transforms.RandomVerticalFlip(),
                 transforms.ToTensor(),
-                transforms.Normalize((0.5,0.5,0.5), (0.5,0.5,0.5)) ]
+                transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))]
+
+val_transforms_B = [transforms.RandomCrop((int(opt.img_height), int(opt.img_width))),
+                    # transforms.Resize((1024, 1024)),
+                    transforms.RandomHorizontalFlip(),
+                    transforms.RandomVerticalFlip(),
+                    transforms.ToTensor(),
+                    transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))]
+
+val_transforms_A = [transforms.RandomCrop((int(opt.img_height), int(opt.img_width))),
+                    transforms.RandomHorizontalFlip(),
+                    transforms.RandomVerticalFlip(),
+                    transforms.ToTensor(),
+                    transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))]
 
 # Training data loader
-dataloader = DataLoader(ImageDataset('data/%s' % opt.dataset_name, transforms_A=transforms_A, transforms_B=transforms_B, unaligned=True),
+dataloader = DataLoader(ImageDataset('data/%s' % opt.dataset_name, transforms_A=transforms_A,
+                                     transforms_B=transforms_B, unaligned=True),
                         batch_size=opt.batch_size, shuffle=True, num_workers=opt.n_cpu)
 # Test data loader
-val_dataloader = DataLoader(ImageDataset('data/%s' % opt.dataset_name, transforms_A=val_transforms_A, transforms_B=val_transforms_B, unaligned=True, mode="test"),
-                        batch_size=4, shuffle=True, num_workers=1)
+val_dataloader = DataLoader(ImageDataset('data/%s' % opt.dataset_name, transforms_A=val_transforms_A,
+                                         transforms_B=val_transforms_B, unaligned=True, mode="test"),
+                            batch_size=4, shuffle=True, num_workers=1)
 
 
 def sample_images(batches_done):
@@ -151,6 +156,7 @@ def sample_images(batches_done):
     img_sample = torch.cat((real_A.data, fake_B.data,
                             real_B.data, fake_A.data), 0)
     save_image(img_sample, 'images/%s/%s.png' % (opt.dataset_name, batches_done), nrow=4, normalize=True)
+
 
 # ----------
 #  Training
@@ -197,9 +203,7 @@ for epoch in range(opt.epoch, opt.n_epochs):
         loss_cycle = (loss_cycle_A + loss_cycle_B) / 2
 
         # Total loss
-        loss_G =    loss_GAN + \
-                    lambda_cyc * loss_cycle + \
-                    lambda_id * loss_identity
+        loss_G = loss_GAN + lambda_cyc * loss_cycle + lambda_id * loss_identity
 
         loss_G.backward()
         optimizer_G.step()
@@ -251,17 +255,14 @@ for epoch in range(opt.epoch, opt.n_epochs):
         prev_time = time.time()
 
         # Print log
-        sys.stdout.write('\r[Epoch %d/%d] [Batch %d/%d] [D loss: %f] [G loss: %f, adv: %f, cycle: %f, identity: %f] ETA: %s' %
-                                                        (epoch, opt.n_epochs,
-                                                        i, len(dataloader),
-                                                        loss_D.item(), loss_G.item(),
-                                                        loss_GAN.item(), loss_cycle.item(),
-                                                        loss_identity.item(), time_left))
+        sys.stdout.write('\r[Epoch %d/%d] [Batch %d/%d] '
+                         '[D loss: %f] [G loss: %f, adv: %f, cycle: %f, identity: %f] ETA: %s' %
+                         (epoch, opt.n_epochs, i, len(dataloader),
+                          loss_D.item(), loss_G.item(), loss_GAN.item(), loss_cycle.item(), loss_identity.item(), time_left))
 
         # If at sample interval save image
         if batches_done % opt.sample_interval == 0:
             sample_images(batches_done)
-
 
     # Update learning rates
     lr_scheduler_G.step()
