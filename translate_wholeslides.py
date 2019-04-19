@@ -22,11 +22,14 @@ DET#2: R
 
 
 def main(args):
+    # check if output dir exists
+    if not os.path.isdir(args.output):
+        print('Output directory does not exist, creating it...')
+        os.mkdir(args.output)
     cuda = True if torch.cuda.is_available() else False
     numpy2vips = numpy_pyvips.Numpy2Vips()
     to_tensor = transforms.Compose([numpy_pyvips.Vips2Numpy(),
-                                             transforms.ToTensor(),
-                                             ])
+                                    transforms.ToTensor()])
     dataset = ScansDataset(args.directory, stain=True,
                            transform_F=transforms.Lambda(lambda x: x / 65535),
                            transform_R=transforms.Lambda(lambda x: x / 65535))
@@ -54,27 +57,36 @@ def main(args):
                 res = numpy2vips(res_np)  # convert to pyvips.Image
                 ver_image = res if not ver_image else ver_image.join(res, "vertical")  # "stack" vertically
             image = ver_image if not image else image.join(ver_image, "horizontal")  # "stack" horizontally
+
         output_file = os.path.join(args.output, '{}{}.{}'.format(args.prefix, i, args.format))
         if args.verbose:
             print('Saving transformed image to ' + output_file)
-        image.write_to_file(output_file)
+        if args.compression:
+            image.multiply(2 ** 8 - 1).tiffsave(output_file, tile=True, compression='jpeg', Q=90, bigtiff=True)
+        else:
+            image.write_to_file(output_file)
         if args.save_linear:
             output_file = os.path.join(args.output, '{}{}.{}'.format(args.save_linear, i, args.format))
             if args.verbose:
                 print('Saving linear transform image to ' + output_file)
-            scan.write_to_file(output_file)
+            if args.compression:
+                scan.multiply(2 ** 8 - 1).tiffsave(output_file, tile=True, compression='jpeg', Q=90, bigtiff=True)
+            else:
+                scan.write_to_file(output_file)
 
 
 if __name__ == '__main__':
     import argparse
     import tqdm
 
-    parser = argparse.ArgumentParser(description='Transform CM whole-slide to H&E.',
+    parser = argparse.ArgumentParser(description='Transform CM whole-slides to H&E.',
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('directory', type=str, help='name of the dataset.')
+    parser.add_argument('directory', type=str, help='directory with mosaic* directories')
     parser.add_argument('-o', '--output', required=True, help='output directory')
     parser.add_argument('--prefix', default='scan', help='output files prefix PREFIX')
-    parser.add_argument('--format', default='tif', help='output image format')
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument('--format', default='tif', help='output image format')
+    group.add_argument('--compression', action='store_true')
     parser.add_argument('--epoch', type=int, default=199, help='epoch to get model from.')
     parser.add_argument('--patch-size', type=int, default=512, help='size in pixels of patch/window.')
     parser.add_argument('--dataset-name', type=str, default='conf_data6', help='name of the saved model dataset.')
