@@ -12,12 +12,11 @@ class ScansDataset(torch.utils.data.Dataset):
     def __init__(self, root_dir, stain=True, transform_stained=None, transform_F=None, transform_R=None):
         """
         Args:
-            root_dir: str. Directory with "mosaics"
-            stain: bool. Stain CM image using VirtualStainer
-            scale_by: int. Divide pixel values prior to staining.
-            transform_stained: callable object. Apply transform to stained image.
-            transform_F: callable object. Apply transform to F-mode image.
-            transform_R: callable object. Apply transform to R-mode image.
+            root_dir (str): Directory with "mosaics"
+            stain (bool): Stain CM image using VirtualStainer
+            transform_stained (callable): Apply transform to stained image.
+            transform_F (callable): Apply transform to F-mode image.
+            transform_R (callable): Apply transform to R-mode image.
         """
         self.root_dir = root_dir
         self.transform_stained = transform_stained
