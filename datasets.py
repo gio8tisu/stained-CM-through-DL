@@ -1,6 +1,6 @@
 import os
 
-import torch
+import torch.utils.data
 import pyvips
 
 from transforms import VirtualStainer
