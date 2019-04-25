@@ -3,56 +3,58 @@ from PIL import Image
 import numpy as np
 
 
+# map np dtypes to vips
+dtype_to_format = {
+    'uint8': 'uchar',
+    'int8': 'char',
+    'uint16': 'ushort',
+    'int16': 'short',
+    'uint32': 'uint',
+    'int32': 'int',
+    'float32': 'float',
+    'float64': 'double',
+    'complex64': 'complex',
+    'complex128': 'dpcomplex',
+}
+# map vips formats to np dtypes
+format_to_dtype = {
+    'uchar': np.uint8,
+    'char': np.int8,
+    'ushort': np.uint16,
+    'short': np.int16,
+    'uint': np.uint32,
+    'int': np.int32,
+    'float': np.float32,
+    'double': np.float64,
+    'complex': np.complex64,
+    'dpcomplex': np.complex128,
+}
+
+
 class Numpy2Vips:
     """numpy array to vips image."""
-
-    # map np dtypes to vips
-    dtype_to_format = {
-            'uint8': 'uchar',
-            'int8': 'char',
-            'uint16': 'ushort',
-            'int16': 'short',
-            'uint32': 'uint',
-            'int32': 'int',
-            'float32': 'float',
-            'float64': 'double',
-            'complex64': 'complex',
-            'complex128': 'dpcomplex',
-    }
 
     def __call__(self, *args, **kwargs):
         return self.numpy2vips(args[0])
 
-    def numpy2vips(self, a):
+    @staticmethod
+    def numpy2vips(a):
         height, width, bands = a.shape
         linear = a.reshape(width * height * bands)
         return pyvips.Image.new_from_memory(linear.data, width, height, bands,
-                                            self.dtype_to_format[str(a.dtype)])
+                                            dtype_to_format[str(a.dtype)])
 
 
 class Vips2Numpy:
     """vips image to numpy array."""
 
-    # map vips formats to np dtypes
-    format_to_dtype = {
-            'uchar': np.uint8,
-            'char': np.int8,
-            'ushort': np.uint16,
-            'short': np.int16,
-            'uint': np.uint32,
-            'int': np.int32,
-            'float': np.float32,
-            'double': np.float64,
-            'complex': np.complex64,
-            'dpcomplex': np.complex128,
-    }
-
     def __call__(self, *args, **kwargs):
         return self.vips2numpy(args[0])
 
-    def vips2numpy(self, vi):
+    @staticmethod
+    def vips2numpy(vi):
         return np.ndarray(buffer=vi.write_to_memory(),
-                          dtype=self.format_to_dtype[vi.format],
+                          dtype=format_to_dtype[vi.format],
                           shape=[vi.height, vi.width, vi.bands])
 
 
