@@ -42,7 +42,7 @@ class BasicConv(nn.Module):
         model = [nn.Sequential(nn.Conv2d(in_channels, 64, 3, padding=1),
                                nn.PReLU(),
                                nn.BatchNorm2d(64))
-                      ]
+                 ]
         for _ in range(n_layers - 2):
             model += [nn.Sequential(nn.Conv2d(64, 64, 3, padding=1),
                                     nn.PReLU(),
