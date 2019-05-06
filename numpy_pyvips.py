@@ -48,8 +48,11 @@ class Numpy2Vips:
 class Vips2Numpy:
     """vips image to numpy array."""
 
-    def __call__(self, *args, **kwargs):
-        return self.vips2numpy(args[0])
+    def __call__(self, *args):
+        res = ()
+        for i in args:
+            res += self.vips2numpy(i)
+        return res
 
     @staticmethod
     def vips2numpy(vi):
