@@ -51,7 +51,7 @@ class Vips2Numpy:
     def __call__(self, *args):
         res = ()
         for i in args:
-            res += self.vips2numpy(i)
+            res += (self.vips2numpy(i),)
         return res
 
     @staticmethod
