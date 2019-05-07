@@ -57,9 +57,9 @@ class BasicConv(nn.Module):
 
 class LogSubtractDespeckle(nn.Module):
     """Apply log to pixel values, resnet with addition, apply exponential."""
-    def __init__(self):
+    def __init__(self, n_layers=6):
         super(LogSubtractDespeckle, self).__init__()
-        conv = BasicConv(in_channels=1, n_layers=6)
+        conv = BasicConv(in_channels=1, n_layers=n_layers)
         self.remove_noise = ResModel(conv, skip_connection=lambda x, y: x - y)
 
     def forward(self, x):
