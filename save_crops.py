@@ -29,10 +29,8 @@ def main():
 
 
 def save(image, i, x, y, mode):
-    if x == y == 0:
-        os.makedirs(os.path.join(args.output_directory, args.prefix + str(i), mode))
-    file_name = os.path.join(args.output_directory, '{}{}/{}/{}-{}.{}'.format(
-            args.prefix, i, mode, y, x, args.format))
+    os.makedirs(os.path.join(args.output_directory, args.prefix + str(i), f'{y}-{x}'), exist_ok=True)
+    file_name = os.path.join(args.output_directory, f'{args.prefix}{i}/{y}-{x}/{mode}.{args.format}')
     if args.verbose:
         print('Saving crop to ' + file_name, end='\r')
     if args.compression:
