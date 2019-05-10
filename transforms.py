@@ -1,4 +1,8 @@
+"""Image transformation classes for use with pyvips."""
+
 import pyvips
+
+import numpy_pyvips
 
 
 class VirtualStainer:
@@ -24,3 +28,22 @@ class VirtualStainer:
 
         image = 1 - f_res - r_res
         return image.copy(interpretation=pyvips.enums.Interpretation.RGB)
+
+
+class MultiplicativeNoise:
+    """Multiply by random variable."""
+
+    def __init__(self, random_variable, **parameters):
+        """
+
+        :param random_variable: numpy.random distribution function.
+        """
+        self.random_variable = random_variable
+        self.parameters = parameters
+        self.numpy2vips = numpy_pyvips.Numpy2Vips()
+
+    def __call__(self, img: pyvips.Image):
+        """return clean image and contaminated image."""
+        size = (img.height, img.width, img.bands)
+        r = self.numpy2vips(self.random_variable(size=size, **self.parameters))
+        return r * img
