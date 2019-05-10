@@ -185,7 +185,8 @@ class GeneratorUNet(nn.Module):
 
 class GeneratorUResNet(nn.Module):
     """TODO"""
-    raise NotImplementedError
+    def __init__(self):
+        raise NotImplementedError
 
 
 ##############################

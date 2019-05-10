@@ -16,11 +16,6 @@ from utils import TileMosaic
 
 Image.MAX_IMAGE_PIXELS = None
 
-'''
-DET#1: F
-DET#2: R
-'''
-
 
 def main(args, dataset, G_AB, to_tensor, numpy2vips, cuda):
     size = args.patch_size
@@ -107,7 +102,8 @@ if __name__ == '__main__':
     parser.add_argument('--prefix', default='scan', help='output files prefix PREFIX')
     group = parser.add_mutually_exclusive_group()
     group.add_argument('--format', default='tif', help='output image format')
-    group.add_argument('--compression', action='store_true')
+    group.add_argument('--compression', action='store_true',
+                       help='apply JPEG compression, assumes input images are in TIFF format.')
     parser.add_argument('--epoch', type=int, default=199, help='epoch to get model from.')
     parser.add_argument('--patch-size', type=int, default=512, help='size in pixels of patch/window.')
     parser.add_argument('--dataset-name', type=str, default='conf_data6', help='name of the saved model dataset.')
