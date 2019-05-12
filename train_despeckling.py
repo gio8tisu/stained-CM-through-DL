@@ -20,7 +20,7 @@ def main(args):
     # Define dataset.
     if args.noise == 'gaussian':
         noise_args = {'random_variable': np.random.normal,
-                      'loc': 1, 'scale': 0.2}
+                      'loc': 1, 'scale': 0.1}
     elif args.noise == 'gamma':
         noise_args = {'random_variable': np.random.gamma,
                       'shape': 1, 'scale': 1}
@@ -133,7 +133,7 @@ def main(args):
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='Transform CM whole-slides to H&E.',
+    parser = argparse.ArgumentParser(description='Train despeckling network.',
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('--data-root', type=str, required=True, help='directory with scan crops')
     parser.add_argument('-o', '--output', required=True, help='output directory')
