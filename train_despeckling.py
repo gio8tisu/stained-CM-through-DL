@@ -152,4 +152,8 @@ if __name__ == '__main__':
     args = parser.parse_args()
     if args.verbose:
         print(args)
+    if not os.path.isdir(args.output):
+        if args.verbose:
+            print('Creating output directory.')
+        os.mkdir(args.output)
     main(args)
