@@ -55,8 +55,8 @@ def main(args):
         raise NotImplementedError(args.optim + 'optimizer is not supported.')
 
     # Training process.
-    loss_hist = list()  # list of (iteration, train loss)
-    loss_hist_eval = list()  # list of (iteration, validation loss)
+    loss_hist = list()  # list of (epoch, train loss)
+    loss_hist_eval = list()  # list of (epoch, validation loss)
     for epoch in range(args.epochs):
         model.train()
         med_loss = 0
