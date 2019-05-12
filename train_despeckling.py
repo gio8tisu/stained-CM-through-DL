@@ -1,5 +1,6 @@
 import argparse
 import os.path
+import pickle
 
 import torch
 from torch.utils.data import DataLoader, random_split
@@ -53,6 +54,8 @@ def main(args):
         raise NotImplementedError(args.optim + 'optimizer is not supported.')
 
     # Training process.
+    loss_hist = list()  # list of (iteration, train loss)
+    loss_hist_eval = list()  # list of (iteration, validation loss)
     for epoch in range(args.epochs):
         model.train()
         med_loss = 0
@@ -70,14 +73,15 @@ def main(args):
             loss.backward()
             optimizer.step()
 
-            med_loss += loss.data.cpu().numpy()
+            med_loss += loss.data.cpu().numpy() / (i+1)
 
             if args.verbose:
-                input_and_target.set_description('Loss = ' + str("{0:.3f}".format(med_loss/(i+1))))
+                input_and_target.set_description('Loss = ' + str("{0:.3f}".format(med_loss)))
+        loss_hist.append((epoch, med_loss))
 
         model.eval()
-        med_loss = 0
-        prev_loss = 0
+        med_loss_eval = 0
+        prev_loss_eval = 0
         mean_ssim1 = 0
         mean_ssim2 = 0
 
@@ -103,23 +107,28 @@ def main(args):
             output = torch.tensor([[output]], dtype=torch.float).cuda()
 
             mean_ssim1 += ssim(output.data.cpu().numpy()[0, 0], target.data.cpu().numpy()[0, 0],
-                               data_range=2)
+                               data_range=2) / (i + 1)
 
             mean_ssim2 += ssim(x.data.cpu().numpy()[0, 0], target.data.cpu().numpy()[0, 0],
-                               data_range=2)
+                               data_range=2) / (i + 1)
 
             loss = criterion(output, target)
-            prev_loss += criterion(x, target).data.cpu().numpy()
-            med_loss += loss.data.cpu().numpy()
+            prev_loss_eval += criterion(x, target).data.cpu().numpy() / (i + 1)
+            med_loss_eval += loss.data.cpu().numpy() / (i + 1)
             input_and_target.set_description(
-                'Loss = ' + str("{0:.3f}".format(med_loss / (i + 1)))
-                + ' Loss = ' + str("{0:.3f}".format(prev_loss / (i + 1)))
-                + ' Loss = ' + str("{0:.3f}".format(mean_ssim1 / (i + 1)))
-                + ' Loss = ' + str("{0:.3f}".format(mean_ssim2 / (i + 1))))
+                'Loss = ' + str("{0:.3f}".format(med_loss_eval))
+                + ' Loss = ' + str("{0:.3f}".format(prev_loss_eval))
+                + ' Loss = ' + str("{0:.3f}".format(mean_ssim1))
+                + ' Loss = ' + str("{0:.3f}".format(mean_ssim2)))
+        loss_hist_eval.append((epoch, med_loss_eval))
         if epoch % args.save_freq:
             torch.save(model.state_dict(), os.path.join(args.output, 'model_epoch{}.h5'.format(epoch)))
 
     torch.save(model.state_dict(), os.path.join(args.output, 'model_latest.h5'))
+    with open(os.path.join(args.output, 'train_loss_hist.pkl'), 'wb') as f:
+        pickle.dump(loss_hist, f, pickle.HIGHEST_PROTOCOL)
+    with open(os.path.join(args.output, 'valid_loss_hist.pkl'), 'wb') as f:
+        pickle.dump(loss_hist_eval, f, pickle.HIGHEST_PROTOCOL)
 
 
 if __name__ == '__main__':
