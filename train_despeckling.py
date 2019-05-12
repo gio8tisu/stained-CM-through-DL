@@ -121,7 +121,7 @@ def main(args):
                 + ' Loss = ' + str("{0:.3f}".format(mean_ssim1))
                 + ' Loss = ' + str("{0:.3f}".format(mean_ssim2)))
         loss_hist_eval.append((epoch, med_loss_eval))
-        if epoch % args.save_freq:
+        if epoch % args.save_period:
             torch.save(model.state_dict(), os.path.join(args.output, 'model_epoch{}.h5'.format(epoch)))
 
     torch.save(model.state_dict(), os.path.join(args.output, 'model_latest.h5'))
@@ -142,7 +142,7 @@ if __name__ == '__main__':
     parser.add_argument('--optim', default='adam', help='optimizer name.')
     parser.add_argument('-l', '--learning-rate', dest='lr', type=int, default=1e-3)
     parser.add_argument('-e', '--epochs', type=int, default=100)
-    parser.add_argument('--save-freq', type=int, metavar='EPOCH', default=5,
+    parser.add_argument('--save-period', type=int, metavar='EPOCH', default=5,
                         help='save model checkpoint after every EPOCH')
     parser.add_argument('--crop', type=int, default=256, help='size in pixels of square random crop.')
     parser.add_argument('--noise', default='gamma', choices=['gaussian', 'gamma'],
