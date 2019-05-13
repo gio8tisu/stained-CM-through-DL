@@ -34,16 +34,11 @@ def main(args):
     val_dataloader = DataLoader(val_dataset, batch_size=args.batch_size, num_workers=4)
 
     # Define model and loss criterion.
-    if args.model == 'log_add':
-        model = models.LogSubtractDespeckle()
-    else:
-        raise NotImplementedError(args.model + 'model does not exist.')
+    model = get_model(args.model)
     if args.criterion == 'mse':
         criterion = MSELoss()
     elif args.criterion == 'l1':
         criterion = L1Loss()
-    else:
-        raise NotImplementedError(args.criterion + 'loss criterion is not supported.')
     if cuda:
         model = model.cuda()
         criterion = criterion.cuda()
@@ -132,6 +127,23 @@ def main(args):
         pickle.dump(loss_hist_eval, f, pickle.HIGHEST_PROTOCOL)
 
 
+def get_model(model_str):
+    """return nn.Module based on model_str.
+
+    TODO: get model class with importlib library.
+    """
+    if model_str == 'log_add':
+        return models.LogAddDespeckle()
+    elif model_str == 'log_subtract':
+        return models.LogSubtractDespeckle()
+    elif model_str == 'multiply':
+        return models.MultiplyDespeckle()
+    elif model_str == 'divide':
+        return models.DivideDespeckle()
+    else:
+        raise NotImplementedError(model_str + 'model does not exist.')
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Train despeckling network.',
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
@@ -139,7 +151,7 @@ if __name__ == '__main__':
     parser.add_argument('-o', '--output', required=True, help='output directory')
     parser.add_argument('--batch-size', type=int, default=512)
     parser.add_argument('--model', default='log_add', help='model name.')
-    parser.add_argument('--criterion', default='mse', help='loss criterion.')
+    parser.add_argument('--criterion', default='mse', choices=['gaussian', 'gamma'], help='loss criterion.')
     parser.add_argument('--optim', default='adam', help='optimizer name.')
     parser.add_argument('-l', '--learning-rate', dest='lr', type=int, default=1e-3)
     parser.add_argument('-e', '--epochs', type=int, default=100)
