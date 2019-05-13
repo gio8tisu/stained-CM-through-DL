@@ -9,7 +9,7 @@ import sys
 
 class ResModel(nn.Module):
     """Model with residual/skip connection."""
-    def __init__(self, sub_module, skip_connection=None, noise_magnitude=0.2):
+    def __init__(self, sub_module, skip_connection=None):
         """
 
         :param sub_module: model between input and skip connection.
@@ -22,10 +22,7 @@ class ResModel(nn.Module):
         else:
             self.skip_connection = skip_connection
 
-        self._noise_magnitude = noise_magnitude
-
         self._conv_part = sub_module
-
         # self._tanh = nn.Tanh()
 
     def forward(self, x):
@@ -47,7 +44,7 @@ class BasicConv(nn.Module):
             model += [nn.Sequential(nn.Conv2d(64, 64, 3, padding=1),
                                     nn.PReLU(),
                                     nn.BatchNorm2d(64))
-                           ]
+                      ]
         model += [nn.Conv2d(64, in_channels, 3, padding=1)]
         self.model = nn.Sequential(*model)
 
@@ -55,14 +52,53 @@ class BasicConv(nn.Module):
         return self.model(x)
 
 
+class LogAddDespeckle(nn.Module):
+    """Apply log to pixel values, resnet block with addition, apply exponential."""
+    def __init__(self, n_layers=6):
+        super(LogAddDespeckle, self).__init__()
+        conv = BasicConv(in_channels=1, n_layers=n_layers)
+        self.remove_noise = ResModel(conv, skip_connection=lambda x, y: x + y)
+
+    def forward(self, x):
+        log_x = (x + 0.0001).log()
+        clean_log_x = self.remove_noise(log_x)
+        return clean_log_x.exp()
+
+
 class LogSubtractDespeckle(nn.Module):
-    """Apply log to pixel values, resnet with addition, apply exponential."""
+    """Apply log to pixel values, resnet block with subtraction, apply exponential."""
     def __init__(self, n_layers=6):
         super(LogSubtractDespeckle, self).__init__()
         conv = BasicConv(in_channels=1, n_layers=n_layers)
         self.remove_noise = ResModel(conv, skip_connection=lambda x, y: x - y)
 
     def forward(self, x):
-        log_x = x.log()
+        log_x = (x + 0.0001).log()
         clean_log_x = self.remove_noise(log_x)
         return clean_log_x.exp()
+
+
+class MultiplyDespeckle(nn.Module):
+    """Resnet block with multiplication."""
+    def __init__(self, n_layers=6):
+        super(MultiplyDespeckle, self).__init__()
+        conv = BasicConv(in_channels=1, n_layers=n_layers)
+        self.remove_noise = ResModel(conv, skip_connection=lambda x, y: x * y)
+        self._tanh = nn.Tanh()
+
+    def forward(self, x):
+        clean_x = self.remove_noise(x)
+        return self._tanh(clean_x)
+
+
+class DivideDespeckle(nn.Module):
+    """Resnet block with division."""
+    def __init__(self, n_layers=6):
+        super(DivideDespeckle, self).__init__()
+        conv = BasicConv(in_channels=1, n_layers=n_layers)
+        self.remove_noise = ResModel(conv, skip_connection=lambda x, y: x / y)
+        self._tanh = nn.Tanh()
+
+    def forward(self, x):
+        clean_x = self.remove_noise(x)
+        return self._tanh(clean_x)
