@@ -135,8 +135,10 @@ if __name__ == '__main__':
     if cuda:
         G_AB = G_AB.cuda()
     G_AB.load_state_dict(torch.load('saved_models/%s/G_AB_%d.pth' % (args.dataset_name, args.epoch)))
+    G_AB.eval()
 
-    if args.overlap:
-        main_fancy(args, dataset, G_AB, to_tensor, numpy2vips, cuda)
-    else:
-        main(args, dataset, G_AB, to_tensor, numpy2vips, cuda)
+    with torch.no_grad():
+        if args.overlap:
+            main_fancy(args, dataset, G_AB, to_tensor, numpy2vips, cuda)
+        else:
+            main(args, dataset, G_AB, to_tensor, numpy2vips, cuda)
