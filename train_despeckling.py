@@ -13,6 +13,8 @@ import tqdm
 from datasets import NoisyScansDataset
 from despeckling import models
 
+# torch.backends.cudnn.enabled = False
+
 
 def main(args):
     cuda = True if torch.cuda.is_available() else False
@@ -34,7 +36,7 @@ def main(args):
     val_dataloader = DataLoader(val_dataset, batch_size=args.batch_size, num_workers=4)
 
     # Define model and loss criterion.
-    model = get_model(args.model)
+    model = get_model(args.model, args.layers)
     if args.criterion == 'mse':
         criterion = MSELoss()
     elif args.criterion == 'l1':
@@ -127,19 +129,19 @@ def main(args):
         pickle.dump(loss_hist_eval, f, pickle.HIGHEST_PROTOCOL)
 
 
-def get_model(model_str):
+def get_model(model_str, num_layers):
     """return nn.Module based on model_str.
 
     TODO: get model class with importlib library.
     """
     if model_str == 'log_add':
-        return models.LogAddDespeckle()
+        return models.LogAddDespeckle(num_layers)
     elif model_str == 'log_subtract':
-        return models.LogSubtractDespeckle()
+        return models.LogSubtractDespeckle(num_layers)
     elif model_str == 'multiply':
-        return models.MultiplyDespeckle()
+        return models.MultiplyDespeckle(num_layers)
     elif model_str == 'divide':
-        return models.DivideDespeckle()
+        return models.DivideDespeckle(num_layers)
     else:
         raise NotImplementedError(model_str + 'model does not exist.')
 
@@ -151,10 +153,11 @@ if __name__ == '__main__':
     parser.add_argument('-o', '--output', required=True, help='output directory')
     parser.add_argument('--batch-size', type=int, default=512)
     parser.add_argument('--model', default='log_add', help='model name.')
+    parser.add_argument('--layers', default=6, type=int, help='number of convolutional layers.')
     parser.add_argument('--criterion', default='mse', choices=['gaussian', 'gamma'], help='loss criterion.')
     parser.add_argument('--optim', default='adam', help='optimizer name.')
-    parser.add_argument('-l', '--learning-rate', dest='lr', type=int, default=1e-3)
-    parser.add_argument('-e', '--epochs', type=int, default=100)
+    parser.add_argument('-l', '--learning-rate', dest='lr', type=int, default=1e-4)
+    parser.add_argument('-e', '--epochs', type=int, default=200)
     parser.add_argument('--save-period', type=int, metavar='EPOCH', default=5,
                         help='save model checkpoint after every EPOCH')
     parser.add_argument('--no-crop', action='store_true', help='do not apply 256x256 random crop')
