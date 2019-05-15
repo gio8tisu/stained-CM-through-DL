@@ -18,6 +18,7 @@ from despeckling import models
 
 def main(args):
     cuda = True if torch.cuda.is_available() else False
+    device = torch.device("cuda") if cuda else torch.device("cpu")
 
     # Define dataset.
     if args.noise == 'gaussian':
@@ -54,71 +55,61 @@ def main(args):
     # Training process.
     loss_hist = list()  # list of (epoch, train loss)
     loss_hist_eval = list()  # list of (epoch, validation loss)
+    ssim_hist_eval = list()  # list of (epoch, validation SSIM)
     for epoch in range(args.epochs):
+        # TRAINING.
         model.train()
-        med_loss = 0
+
         input_and_target = enumerate(train_dataloader)
         if args.verbose:
-            print('Epoch {} of {}'.format(epoch, args.epochs))
+            print('Epoch {} of {}'.format(epoch, args.epochs - 1))
             input_and_target = tqdm.tqdm(input_and_target, total=len(train_dataloader))
-        for i, (x, target) in input_and_target:
-            x, target = x.float().cuda(), target.float().cuda()
+
+        med_loss = 0
+        for i, (x_batch, target_batch) in input_and_target:
+            x_batch, target_batch = x_batch.float().to(device), target_batch.float().to(device)
 
             optimizer.zero_grad()
-            output = model(x)
+            output_batch = model(x_batch)
 
-            loss = criterion(output, target)
+            loss = criterion(output_batch, target_batch)
             loss.backward()
             optimizer.step()
 
-            med_loss += loss.data.cpu().numpy() / (i+1)
+            med_loss += loss.data.cpu().numpy()
 
             if args.verbose:
-                input_and_target.set_description('Loss = ' + str("{0:.3f}".format(med_loss)))
-        loss_hist.append((epoch, med_loss))
+                input_and_target.set_description('Train loss = {0:.3f}'.format(loss))
+        loss_hist.append((epoch, med_loss / (i + 1)))
 
+        # VALIDATION.
+        if args.verbose:
+            print('Validation:')
         model.eval()
-        med_loss_eval = 0
-        prev_loss_eval = 0
-        mean_ssim1 = 0
-        mean_ssim2 = 0
 
         input_and_target = enumerate(val_dataloader)
         if args.verbose:
             input_and_target = tqdm.tqdm(input_and_target, total=len(val_dataloader))
-        for i, (x, target) in input_and_target:
-            x, target = x.cuda(), target.cuda()
-            output = model(x)
 
-            output = output.data.cpu().numpy()[0, 0]
-            aux_img = x.data.cpu().numpy()[0, 0]
+        med_loss_eval = 0
+        prev_loss_eval = 0
+        for i, (x_batch, target_batch) in input_and_target:
+            x_batch, target_batch = x_batch.float().to(device), target_batch.float().to(device)
+            output_batch = model(x_batch)
+            loss = criterion(output_batch, target_batch)
+            med_loss_eval += loss.data.cpu().numpy()
+            prev_loss_eval = criterion(x_batch, target_batch).data.cpu().numpy()
 
-            # output *= (np.max(aux_img) - np.min(aux_img)) / (np.max(output) - np.min(output))
+            ssim_input = compute_ssim(x_batch, target_batch)
+            ssim_output = compute_ssim(output_batch, target_batch, args.median)
 
-            output += 1
-            output /= 2
-            output *= 255
-            output = output.astype(np.uint8)
-
-            output = np.median(output)
-            output = (output / 255.0 - 0.5) * 2
-            output = torch.tensor([[output]], dtype=torch.float).cuda()
-
-            mean_ssim1 += ssim(output.data.cpu().numpy()[0, 0], target.data.cpu().numpy()[0, 0],
-                               data_range=2) / (i + 1)
-
-            mean_ssim2 += ssim(x.data.cpu().numpy()[0, 0], target.data.cpu().numpy()[0, 0],
-                               data_range=2) / (i + 1)
-
-            loss = criterion(output, target)
-            prev_loss_eval += criterion(x, target).data.cpu().numpy() / (i + 1)
-            med_loss_eval += loss.data.cpu().numpy() / (i + 1)
-            input_and_target.set_description(
-                'Loss = ' + str("{0:.3f}".format(med_loss_eval))
-                + ' Loss = ' + str("{0:.3f}".format(prev_loss_eval))
-                + ' Loss = ' + str("{0:.3f}".format(mean_ssim1))
-                + ' Loss = ' + str("{0:.3f}".format(mean_ssim2)))
-        loss_hist_eval.append((epoch, med_loss_eval))
+            if args.verbose:
+                input_and_target.set_description(
+                    'Output loss = {0:.3f}'.format(loss)
+                    + ' Input loss = {0:.3f}'.format(prev_loss_eval)
+                    + ' Input SSIM = {0:.3f}'.format(ssim_input / args.batch_size)
+                    + ' Output SSIM = {0:.3f}'.format(ssim_output / args.batch_size))
+        loss_hist_eval.append((epoch, med_loss_eval / (i + 1)))
         if epoch % args.save_period:
             torch.save(model.state_dict(), os.path.join(args.output, 'model_epoch{}.h5'.format(epoch)))
 
@@ -127,6 +118,22 @@ def main(args):
         pickle.dump(loss_hist, f, pickle.HIGHEST_PROTOCOL)
     with open(os.path.join(args.output, 'valid_loss_hist.pkl'), 'wb') as f:
         pickle.dump(loss_hist_eval, f, pickle.HIGHEST_PROTOCOL)
+
+
+def compute_ssim(noisy_batch, clean_batch, median_filter=False):
+    # iterate over batch to compute SSIM
+    ssim_sum = 0
+    for noisy, clean in zip(noisy_batch[:, 0], clean_batch[:, 0]):
+        noisy = noisy.data.cpu().numpy()
+
+        if median_filter:
+            noisy = (noisy + 1) / 2 * 255
+            noisy = noisy.astype(np.uint8)
+            noisy = np.median(noisy)
+            noisy = (noisy / 255.0 - 0.5) * 2
+
+        ssim_sum += ssim(noisy, clean.data.cpu().numpy(), data_range=2)
+    return ssim_sum
 
 
 def get_model(model_str, num_layers):
@@ -163,6 +170,7 @@ if __name__ == '__main__':
     parser.add_argument('--no-crop', action='store_true', help='do not apply 256x256 random crop')
     parser.add_argument('--noise', default='gamma', choices=['gaussian', 'gamma'],
                         help='type of noise Gaussian(1, 0.2) or Gamma(1, 1).')
+    parser.add_argument('--median', action='store_true', help='apply median filter on validation')
     parser.add_argument('-v', '--verbose', action='store_true')
 
     args = parser.parse_args()
