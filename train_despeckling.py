@@ -86,29 +86,29 @@ def main(args):
         if args.verbose:
             print('Validation:')
         model.eval()
-
-        input_and_target = enumerate(val_dataloader)
-        if args.verbose:
-            input_and_target = tqdm.tqdm(input_and_target, total=len(val_dataloader))
-
-        med_loss_eval = 0
-        prev_loss_eval = 0
-        for i, (x_batch, target_batch) in input_and_target:
-            x_batch, target_batch = x_batch.float().to(device), target_batch.float().to(device)
-            output_batch = model(x_batch)
-            loss = criterion(output_batch, target_batch)
-            med_loss_eval += loss.data.cpu().numpy()
-            prev_loss_eval = criterion(x_batch, target_batch).data.cpu().numpy()
-
-            ssim_input = compute_ssim(x_batch, target_batch)
-            ssim_output = compute_ssim(output_batch, target_batch, args.median)
-
+        with model.no_grad():
+            input_and_target = enumerate(val_dataloader)
             if args.verbose:
-                input_and_target.set_description(
-                    'Output loss = {0:.3f}'.format(loss)
-                    + ' Input loss = {0:.3f}'.format(prev_loss_eval)
-                    + ' Input SSIM = {0:.3f}'.format(ssim_input / args.batch_size)
-                    + ' Output SSIM = {0:.3f}'.format(ssim_output / args.batch_size))
+                input_and_target = tqdm.tqdm(input_and_target, total=len(val_dataloader))
+
+            med_loss_eval = 0
+            prev_loss_eval = 0
+            for i, (x_batch, target_batch) in input_and_target:
+                x_batch, target_batch = x_batch.float().to(device), target_batch.float().to(device)
+                output_batch = model(x_batch)
+                loss = criterion(output_batch, target_batch)
+                med_loss_eval += loss.data.cpu().numpy()
+                prev_loss_eval = criterion(x_batch, target_batch).data.cpu().numpy()
+
+                ssim_input = compute_ssim(x_batch, target_batch)
+                ssim_output = compute_ssim(output_batch, target_batch, args.median)
+
+                if args.verbose:
+                    input_and_target.set_description(
+                        'Output loss = {0:.3f}'.format(loss)
+                        + ' Input loss = {0:.3f}'.format(prev_loss_eval)
+                        + ' Input SSIM = {0:.3f}'.format(ssim_input / args.batch_size)
+                        + ' Output SSIM = {0:.3f}'.format(ssim_output / args.batch_size))
         loss_hist_eval.append((epoch, med_loss_eval / (i + 1)))
         if epoch % args.save_period:
             torch.save(model.state_dict(), os.path.join(args.output, 'model_epoch{}.h5'.format(epoch)))
