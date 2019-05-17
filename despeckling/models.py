@@ -37,15 +37,15 @@ class BasicConv(nn.Module):
     def __init__(self, in_channels=1, n_layers=6):
         super(BasicConv, self).__init__()
         model = [nn.Sequential(nn.Conv2d(in_channels, 64, 3, padding=1),
-                               nn.PReLU(),
-                               nn.BatchNorm2d(64))
+                               nn.BatchNorm2d(64),
+                               nn.PReLU())
                  ]
-        for _ in range(n_layers - 2):
+        for _ in range(n_layers - 1):
             model += [nn.Sequential(nn.Conv2d(64, 64, 3, padding=1),
-                                    nn.PReLU(),
-                                    nn.BatchNorm2d(64))
+                                    nn.BatchNorm2d(64),
+                                    nn.PReLU())
                       ]
-        model += [nn.Conv2d(64, in_channels, 3, padding=1)]
+        model += [nn.Conv2d(64, in_channels, 1)]
         self.model = nn.Sequential(*model)
 
     def forward(self, x):
@@ -84,11 +84,11 @@ class MultiplyDespeckle(nn.Module):
         super(MultiplyDespeckle, self).__init__()
         conv = BasicConv(in_channels=1, n_layers=n_layers)
         self.remove_noise = ResModel(conv, skip_connection=lambda x, y: x * y)
-        self._tanh = nn.Tanh()
+        self.last_activation = nn.Sequential(nn.BatchNorm2d(1), nn.Sigmoid())
 
     def forward(self, x):
         clean_x = self.remove_noise(x)
-        return self._tanh(clean_x)
+        return self.last_activation(clean_x)
 
 
 class DivideDespeckle(nn.Module):
@@ -97,8 +97,8 @@ class DivideDespeckle(nn.Module):
         super(DivideDespeckle, self).__init__()
         conv = BasicConv(in_channels=1, n_layers=n_layers)
         self.remove_noise = ResModel(conv, skip_connection=lambda x, y: x / y)
-        self._tanh = nn.Tanh()
+        self.last_activation = nn.Sequential(nn.BatchNorm2d(1), nn.Sigmoid())
 
     def forward(self, x):
         clean_x = self.remove_noise(x)
-        return self._tanh(clean_x)
+        return self.last_activation(clean_x)
