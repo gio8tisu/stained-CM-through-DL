@@ -179,7 +179,8 @@ class NoisyScansDataset(ScansCropsDataset):
         clean = super(NoisyScansDataset, self).__getitem__(item)
         noisy = self.add_noise(clean)
         if self.apply_random_crop:
-            x = y = random.randint(0, 255)
+            x = random.randint(0, 255)
+            y = random.randint(0, 255)
             clean = clean.crop(x, y, 256, 256)
             noisy = noisy.crop(x, y, 256, 256)
         return self.to_tensor(noisy), self.to_tensor(clean)
