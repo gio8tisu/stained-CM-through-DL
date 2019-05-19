@@ -26,7 +26,7 @@ def main(args):
                       'loc': 1, 'scale': 0.1}
     elif args.noise == 'gamma':
         noise_args = {'random_variable': np.random.gamma,
-                      'shape': 1, 'scale': 1}
+                      'shape': args.L, 'scale': 1 / args.L}
     # dataset returns (noisy, clean) tuple
     dataset = NoisyScansDataset(args.data_root, 'F', noise_args, apply_random_crop=(not args.no_crop))
     train_size = int(0.9 * len(dataset))
@@ -169,7 +169,9 @@ if __name__ == '__main__':
                         help='save model checkpoint after every EPOCH')
     parser.add_argument('--no-crop', action='store_true', help='do not apply 256x256 random crop')
     parser.add_argument('--noise', default='gamma', choices=['gaussian', 'gamma'],
-                        help='type of noise Gaussian(1, 0.2) or Gamma(1, 1).')
+                        help='type of noise Gaussian(1, 0.2) or Gamma(L, L).')
+    parser.add_argument('-L', '--looks', metavar='L', dest='L', default=1, type=int,
+                        help='apply median filter on validation')
     parser.add_argument('--median', action='store_true', help='apply median filter on validation')
     parser.add_argument('-v', '--verbose', action='store_true')
 
