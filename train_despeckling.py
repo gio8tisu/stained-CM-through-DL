@@ -107,8 +107,8 @@ def main(args):
                     input_and_target.set_description(
                         'Output loss = {0:.3f}'.format(loss)
                         + ' Input loss = {0:.3f}'.format(prev_loss_eval)
-                        + ' Input SSIM = {0:.3f}'.format(ssim_input / args.batch_size)
-                        + ' Output SSIM = {0:.3f}'.format(ssim_output / args.batch_size))
+                        + ' Input SSIM = {0:.3f}'.format(ssim_input)
+                        + ' Output SSIM = {0:.3f}'.format(ssim_output))
         loss_hist_eval.append((epoch, med_loss_eval / (i + 1)))
         if epoch % args.save_period:
             torch.save(model.state_dict(), os.path.join(args.output, 'model_epoch{}.h5'.format(epoch)))
@@ -133,7 +133,7 @@ def compute_ssim(noisy_batch, clean_batch, median_filter=False):
             noisy = (noisy / 255.0 - 0.5) * 2
 
         ssim_sum += ssim(noisy, clean.data.cpu().numpy(), data_range=2)
-    return ssim_sum
+    return ssim_sum / noisy_batch.shape[0]
 
 
 def get_model(model_str, num_layers):
