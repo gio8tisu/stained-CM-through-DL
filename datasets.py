@@ -103,7 +103,7 @@ class ScansCropsDataset(torch.utils.data.Dataset):
         self.transform_stained = transform_stained
         self.transform_F = transform_F
         self.transform_R = transform_R
-        self.crops = self._list_crops()
+        self.crops = self._list_crops()  # List[Tuple] (R,F)
         self.stainer = VirtualStainer() if stain else None
 
     def __len__(self):
@@ -116,11 +116,11 @@ class ScansCropsDataset(torch.utils.data.Dataset):
         """
         # load R mode if needed
         if not self.only_F:
-            r_file = self.crops[item] / 'R.tif'
+            r_file = self.crops[item][0]  # first element of tuple is R mode
             r_img = pyvips.Image.new_from_file(str(r_file))
         # load F mode if needed
         if not self.only_R:
-            f_file = self.crops[item] / 'F.tif'
+            f_file = self.crops[item][1]  # first element of tuple is F mode
             f_img = pyvips.Image.new_from_file(str(f_file))
 
         if self.transform_F:
@@ -141,14 +141,10 @@ class ScansCropsDataset(torch.utils.data.Dataset):
         return {'F': f_img, 'R': r_img}
 
     def _list_crops(self):
-        crops = []
-        for scan in self.root_dir.iterdir():
-            if scan.is_dir():
-                for crop in scan.iterdir():
-                    if crop.is_dir():
-                        crops.append(crop)
+        crops_R = self.root_dir.glob('*R.tif')
+        crops_F = self.root_dir.glob('*F.tif')
+        crops = list(zip(sorted(crops_R), sorted(crops_F)))
 
-        crops = sorted(crops)
         return crops
 
 

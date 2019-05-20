@@ -29,8 +29,7 @@ def main():
 
 
 def save(image, i, x, y, mode):
-    os.makedirs(os.path.join(args.output_directory, args.prefix + str(i), f'{y}-{x}'), exist_ok=True)
-    file_name = os.path.join(args.output_directory, f'{args.prefix}{i}/{y}-{x}/{mode}.{args.format}')
+    file_name = os.path.join(args.output_directory, f'{args.prefix}{i}_{y}-{x}_{mode}.{args.format}')
     if args.verbose:
         print('Saving crop to ' + file_name, end='\r')
     if args.compression:
@@ -50,6 +49,7 @@ if __name__ == '__main__':
     group.add_argument('--compression', action='store_true', help='apply JPEG compression')
     parser.add_argument('--patch-size', type=int, default=512, help='size in pixels of square patch/window')
     parser.add_argument('--step', type=int, help='window step in pixels')
+    parser.add_argument('--discard', action='store_true', help='discard patches with mean<2000')
     parser.add_argument('-v', '--verbose', action='store_true')
 
     args = parser.parse_args()
@@ -60,6 +60,7 @@ if __name__ == '__main__':
     if not os.path.isdir(args.output_directory):
         if args.verbose:
             print('Output directory does not exist, creating it...')
+        os.makedirs(args.output_directory)
 
     if not args.step:
         args.step = args.patch_size
