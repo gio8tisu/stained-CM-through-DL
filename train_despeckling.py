@@ -27,6 +27,9 @@ def main(args):
     elif args.noise == 'gamma':
         noise_args = {'random_variable': np.random.gamma,
                       'shape': args.L, 'scale': 1 / args.L}
+    elif args.noise == 'uniform':
+        noise_args = {'random_variable': np.random.uniform,
+                      'low': 1-0.3464, 'high': 1+0.3464}
     # dataset returns (noisy, clean) tuple
     dataset = NoisyScansDataset(args.data_root, 'F', noise_args, apply_random_crop=(not args.no_crop))
     train_size = int(0.9 * len(dataset))
