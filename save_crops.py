@@ -22,8 +22,15 @@ def main():
         y_x = product(range(0, scan['F'].height - size - 1, args.step),
                       range(0, scan['F'].width - size - 1, args.step))
         for y_pos, x_pos in tqdm.tqdm(y_x):
+            first_ok = False
             for mode, s in scan.items():
                 tile_scan = s.crop(x_pos, y_pos, size, size)  # "grab" square window/patch from image.
+                if args.discard:
+                    avg = tile_scan.avg()
+                    if avg < 2000:
+                        if args.verbose:
+                            print(f'Discarding crop {y_pos}-{x_pos} with mean pixel value of {avg}.')
+                        break
                 save(tile_scan, i, x_pos, y_pos, mode)
     print('Done.')
 
