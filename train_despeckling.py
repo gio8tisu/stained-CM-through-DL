@@ -110,8 +110,9 @@ def main(opt):
         loss_hist_eval.append((epoch, med_loss_eval / (i + 1)))
         ssim_hist_eval.append((epoch, med_ssim_eval / (i + 1)))
         write_lc_step(epoch, loss_hist[-1][1], loss_hist_eval[-1][1], ssim_hist_eval[-1][1])
+        torch.save(model.state_dict(), os.path.join(opt.output, '{}_latest.h5'.format(opt.model)))
         if epoch % opt.save_period:
-            torch.save(model.state_dict(), os.path.join(opt.output, 'model_epoch{}.h5'.format(epoch)))
+            torch.save(model.state_dict(), os.path.join(opt.output, '{}_epoch{}.h5'.format(opt.model, epoch)))
 
     torch.save(model.state_dict(), os.path.join(opt.output, 'model_latest.h5'))
     with open(os.path.join(opt.output, 'train_loss_hist.pkl'), 'wb') as f:
