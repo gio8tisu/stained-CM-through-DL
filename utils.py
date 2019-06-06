@@ -31,7 +31,8 @@ class TileMosaic:
         self.steps = (range(0, original.height - tile_shape[0] - 1, tile_shape[0] // 4),
                       range(0, original.width - tile_shape[1] - 1, tile_shape[1] // 4))
         self.tiles = []
-        self.background = original * 0
+        self.background = pyvips.Image.black(original.width, original.height,
+                                             bands=image.bands)
 
         # weight matrix definition
         x, y = np.meshgrid(np.arange(self.crop[1]), np.arange(self.crop[0]))
