@@ -1,6 +1,7 @@
 import os
 
 from PIL import Image
+import pyvips
 import numpy as np
 import torch
 from torchvision import transforms
@@ -82,12 +83,10 @@ def pad_image(image, padding):
     """Zero-pad image.
 
     :param padding: how many pixel to pad by on each side.
-
-    TODO: needs optimization.
     """
-    background = numpy_pyvips.Vips2Numpy.vips2numpy(image) * 0
-    background.resize((image.height + 2 * padding, image.width + 2 * padding, 3), refcheck=False)
-    background = numpy_pyvips.Numpy2Vips.numpy2vips(background)
+    background = pyvips.Image.black(image.width + 2 * padding,
+                                    image.height + 2 * padding,
+                                    bands=image.bands)
     return background.insert(image, padding, padding)
 
 
