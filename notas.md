@@ -5,7 +5,7 @@
 ### Milestones
 
 	Title               | Date (week)
-	--------------------+----------------
+	--------------------|----------------
 	Baseline            | 6
 	Increase complexity | 8 
 	Test and results    | 9
