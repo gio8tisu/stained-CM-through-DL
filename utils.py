@@ -6,6 +6,9 @@ import pyvips
 import numpy_pyvips
 
 
+pyvips.voperation.cache_set_max(0)
+
+
 class TileMosaic:
     """Class for WSI inference technique by Thomas de Bel et al.
 
@@ -32,7 +35,7 @@ class TileMosaic:
                       range(0, original.width - tile_shape[1] - 1, tile_shape[1] // 4))
         self.tiles = []
         self.background = pyvips.Image.black(original.width, original.height,
-                                             bands=image.bands)
+                                             bands=image.bands).copy(interpretation='rgb')
 
         # weight matrix definition
         x, y = np.meshgrid(np.arange(self.crop[1]), np.arange(self.crop[0]))
@@ -51,9 +54,9 @@ class TileMosaic:
         if (tile.height, tile.width) != self.tile_shape:
             raise ValueError('Tile is not the correct shape.')
         # crop borders
-        center = tile.extract_area(tile.width // 2 - self.crop[1] // 2,
-                                   tile.height // 2 - self.crop[0] // 2,
-                                   *self.crop)
+        center = tile.crop(tile.width // 2 - self.crop[1] // 2,
+                           tile.height // 2 - self.crop[0] // 2,
+                           *self.crop)
         center *= self.weights
         self.tiles.append(center)
 
