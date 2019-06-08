@@ -3,6 +3,7 @@
 * Imatge es el mateix tamany? (0.74)
 
 ### Milestones
+
 	Title               | Date (week)
 	--------------------+----------------
 	Baseline            | 6
