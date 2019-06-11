@@ -91,6 +91,7 @@ class TileMosaic:
         return self.background
 
 
+
 if __name__ == '__main__':
     import sys
     import time
