@@ -72,6 +72,7 @@ def main_fancy(args, dataset, G_AB, transform, numpy2vips, cuda):
         save(args, i, image, scan)
 
 
+
 def main_fancy_marc(args, dataset, G_AB, transform, numpy2vips, cuda):
     size = args.patch_size
 
