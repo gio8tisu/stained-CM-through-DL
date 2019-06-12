@@ -10,7 +10,7 @@ import tqdm
 import cyclegan.models
 import numpy_pyvips
 from datasets import ScansDataset
-from utils import TileMosaic
+from utils import TileMosaic, pad_image
 
 
 Image.MAX_IMAGE_PIXELS = None
@@ -77,17 +77,6 @@ def save(args, i, image, scan):
         if args.verbose:
             print('Saving linear transform image to ' + output_file)
         scan.write_to_file(output_file)
-
-
-def pad_image(image, padding):
-    """Zero-pad image.
-
-    :param padding: how many pixel to pad by on each side.
-    """
-    background = pyvips.Image.black(image.width + 2 * padding,
-                                    image.height + 2 * padding,
-                                    bands=image.bands)
-    return background.insert(image, padding, padding)
 
 
 if __name__ == '__main__':
