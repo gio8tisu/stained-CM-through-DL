@@ -45,6 +45,22 @@ class Numpy2Vips:
                                             dtype_to_format[str(a.dtype)])
 
 
+class TorchTensor2Vips:
+    """torch.Tensor to vips image.
+
+    Assumes input tensor has [Batch,Channel,Height,Width] axis.
+    """
+
+    def __init__(self):
+        self.numpy2vips = Numpy2Vips()
+
+    def __call__(self, tensor):
+        # keep only first element in batch axis
+        # and change channel axis to last
+        tensor_t = tensor.cpu().detach()[0].permute(1, 2, 0)
+        return self.numpy2vips(tensor_t.numpy())
+
+
 class Vips2Numpy:
     """vips image to numpy array."""
 
