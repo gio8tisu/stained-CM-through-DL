@@ -1,4 +1,5 @@
 import os
+from itertools import product
 
 from PIL import Image
 import pyvips
@@ -13,8 +14,6 @@ from datasets import ScansDataset
 from utils import TileMosaic, pad_image
 
 pyvips.cache_set_max(0)
-
-from itertools import product
 
 Image.MAX_IMAGE_PIXELS = None
 
@@ -50,6 +49,7 @@ def main_fancy(args, dataset, G_AB, transform, numpy2vips, cuda):
 
         if args.verbose:
             print('Transforming image {} of {}'.format(i + 1, len(dataset)))
+
         scan = pad_image(scan, size // 2)
         tiles = TileMosaic(scan, (size, size))
         for x_pos in tqdm.trange(0, scan.width - size - 1, size // 4):
@@ -64,33 +64,23 @@ def main_fancy(args, dataset, G_AB, transform, numpy2vips, cuda):
                 res_np = (res_np[0] + 1) / 2  # shift pixel values to [0,1] range
                 res_vips = numpy2vips(res_np)  # convert to pyvips.Image
                 tiles.add_tile(res_vips)
-                break
-            break
 
-        image = tiles.build_mosaic()
+        image = tiles.get_mosaic()
         save(args, i, image, scan)
-
 
 
 def main_fancy_marc(args, dataset, G_AB, transform, numpy2vips, cuda):
     size = args.patch_size
-
     for i in range(len(dataset)):
         scan = dataset[i]
 
-        (scan*255.0).write_to_file('test2.jpg')
+        (scan * 255.0).write_to_file('test2.jpg')
 
         if args.verbose:
             print('Transforming image {} of {}'.format(i + 1, len(dataset)))
-        scan = pad_image_marc(scan, size // 2)
+
+        scan = pad_image(scan, size // 2)
         tiles = TileMosaic(scan, (size, size))
-
-        # 2048, 2048 --> 1024
-
-        x_positions = range(0, scan.width - size - 1, size // 2)
-        y_positions = range(0, scan.height - size - 1, size // 2)
-
-        iterator = product(x_positions, y_positions)
 
         counter_x = 0
         for x_pos in tqdm.trange(0, scan.width - size - 1, size // 2):
@@ -107,15 +97,9 @@ def main_fancy_marc(args, dataset, G_AB, transform, numpy2vips, cuda):
                 res_np = np.moveaxis(res_np, 1, 3)  # to channels last.
                 res_np = (res_np[0] + 1) / 2  # shift pixel values to [0,1] range
                 res_vips = numpy2vips(res_np)  # convert to pyvips.Image
-                tiles.add_tile(res_vips, (x_pos, y_pos))
-
-                counter_y += 1
-
-            counter_x += 1
-
-
+                tiles.add_tile(res_vips, x_pos, y_pos)
         print('Saving')
-        image = tiles.build_mosaic()
+        image = tiles.get_mosaic()
         (image * 255.0).write_to_file('test.jpg')
         quit()
 
@@ -124,42 +108,19 @@ def main_fancy_marc(args, dataset, G_AB, transform, numpy2vips, cuda):
 
 
 def save(args, i, image, scan):
-    image = image*255.0
+    image = image * 255.0
     output_file = os.path.join(args.output, '{}{}.{}'.format(args.prefix, i, args.format))
     if args.verbose:
         print('Saving transformed image to ' + output_file)
     if args.compression:
-        image.tiffsave(output_file, tile=True, compression='jpeg', Q=90)
+        (image * 255.0).tiffsave(output_file, tile=True, compression='jpeg', Q=90)
     else:
-        image.write_to_file(output_file)
+        (image * 255.0).write_to_file(output_file)
     if args.save_linear:
-        output_file = os.path.join(args.output, '{}{}.{}'.format(args.save_linear, i, args.format))
+        output_file = os.path.join(args.output, '{}_linear_{}.{}'.format(args.prefix, i, args.format))
         if args.verbose:
             print('Saving linear transform image to ' + output_file)
-        scan.write_to_file(output_file)
-
-
-def pad_image(image, padding):
-    """Zero-pad image.
-
-    :param padding: how many pixel to pad by on each side.
-
-    TODO: needs optimization.
-    """
-    background = numpy_pyvips.Vips2Numpy.vips2numpy(image) * 0
-    background.resize((image.height + 2 * padding, image.width + 2 * padding, 3), refcheck=False)
-    background = numpy_pyvips.Numpy2Vips.numpy2vips(background)
-    return background.insert(image, padding, padding)
-
-def pad_image_marc(image, padding):
-    """Zero-pad image.
-
-    :param padding: how many pixel to pad by on each side.
-    """
-    background = pyvips.Image.black(image.width + 2 * padding, image.height +  2 * padding, bands = image.bands).copy(interpretation='rgb')
-    background = background.insert(image, padding, padding)
-
-    return background
+        (scan * 255.0).write_to_file(output_file)
 
 
 if __name__ == '__main__':
@@ -168,6 +129,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Transform CM whole-slides to H&E.',
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('directory', type=str, help='directory with mosaic* directories')
+    parser.add_argument('--models-dir', required=True, help='directory with saved models')
     parser.add_argument('-o', '--output', required=True, help='output directory')
     parser.add_argument('--prefix', default='scan', help='output files prefix PREFIX')
     group = parser.add_mutually_exclusive_group()
@@ -181,7 +143,7 @@ if __name__ == '__main__':
                         help='save linearly stained image (input of model) to LIN_PREFIX.')
     parser.add_argument('--overlap', action='store_true',
                         help='overlapping tiles (WSI inference technique by Thomas de Bel et al.)')
-    parser.add_argument('-v', '--verbose', action='store_true', default=True)
+    parser.add_argument('-v', '--verbose', action='store_true')
 
     args = parser.parse_args()
     if args.verbose:
@@ -206,11 +168,11 @@ if __name__ == '__main__':
     G_AB = cyclegan.models.GeneratorResNet(res_blocks=9)
     if cuda:
         G_AB = G_AB.cuda()
-    G_AB.load_state_dict(torch.load('/media/marc/data_disk/confocal/staining/sgarcia/saved_models/%s/G_AB_%d.pth' % (args.dataset_name, args.epoch)))
+    G_AB.load_state_dict(torch.load('%s/%s/G_AB_%d.pth' % (args.models_dir, args.dataset_name, args.epoch)))
 
     G_AB.eval()
     with torch.no_grad():
         if args.overlap:
-            main_fancy_marc(args, dataset, G_AB, transform, numpy2vips, cuda)
+            main_fancy(args, dataset, G_AB, transform, numpy2vips, cuda)
         else:
             main(args, dataset, G_AB, transform, numpy2vips, cuda)

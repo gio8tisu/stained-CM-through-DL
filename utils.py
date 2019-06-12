@@ -2,7 +2,6 @@ import numpy as np
 import pyvips
 
 import numpy_pyvips
-import cv2
 
 
 class TileMosaic:
@@ -19,7 +18,7 @@ class TileMosaic:
     """
 
     def __init__(self, original,
-                 tile_shape=(2048, 2048), center_crop=(1024, 1024), window_type=0.25):
+                 tile_shape=(2049, 2049), center_crop=(1025, 1025), window_type=0.25):
         """Constructor.
 
         :param original: original image, padded by tile_shape / 2.
