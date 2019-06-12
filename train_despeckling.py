@@ -122,6 +122,12 @@ def main(opt):
 
 
 def get_noise_args(noise):
+    """return dictionary with np.random function and keyword arguments.
+
+    :param noise: (str) noise name
+
+    TODO: Rayleigh random variable.
+    """
     if noise == 'gaussian':
         return {'random_variable': np.random.normal,
                 'loc': 1, 'scale': 0.1}

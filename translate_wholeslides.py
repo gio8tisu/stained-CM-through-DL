@@ -1,6 +1,7 @@
 import os
 
 from PIL import Image
+import pyvips
 import numpy as np
 import torch
 from torchvision import transforms
@@ -9,8 +10,7 @@ import tqdm
 import cyclegan.models
 import numpy_pyvips
 from datasets import ScansDataset
-from utils import TileMosaic
-import pyvips
+from utils import TileMosaic, pad_image
 
 pyvips.cache_set_max(0)
 
@@ -40,7 +40,6 @@ def main(args, dataset, G_AB, transform, numpy2vips, cuda):
                 res = numpy2vips(res_np)  # convert to pyvips.Image
                 ver_image = res if not ver_image else ver_image.join(res, "vertical")  # "stack" vertically
             image = ver_image if not image else image.join(ver_image, "horizontal")  # "stack" horizontally
-
         save(args, i, image, scan)
 
 

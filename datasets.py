@@ -10,8 +10,8 @@ from transforms import VirtualStainer, MultiplicativeNoise
 
 
 '''
-DET#1: F
-DET#2: R
+DET#1: R
+DET#2: F
 '''
 
 
@@ -48,10 +48,10 @@ class ScansDataset(torch.utils.data.Dataset):
         Return both modes otherwise.
         """
         if not self.only_F:
-            r_file = self.scans[item] + '/DET#2/highres_raw.tif'
+            r_file = self.scans[item] + '/DET#1/highres_raw.tif'
             r_img = pyvips.Image.new_from_file(r_file)
         if not self.only_R:
-            f_file = self.scans[item] + '/DET#1/highres_raw.tif'
+            f_file = self.scans[item] + '/DET#2/highres_raw.tif'
             f_img = pyvips.Image.new_from_file(f_file)
 
         if self.transform_F:
@@ -82,7 +82,10 @@ class ScansDataset(torch.utils.data.Dataset):
 
 
 class ScansCropsDataset(torch.utils.data.Dataset):
-    """CM scans crops dataset with possibility to (linearly) stain."""
+    """CM scans crops dataset with possibility to (linearly) stain.
+
+    TODO: migrate to PIL.
+    """
 
     def __init__(self, root_dir, only_R=False, only_F=False, stain=False,
                  transform_stained=None, transform_F=None, transform_R=None):
@@ -149,7 +152,10 @@ class ScansCropsDataset(torch.utils.data.Dataset):
 
 
 class NoisyScansDataset(ScansCropsDataset):
-    """Dataset with 512x512 CM crops with speckle noise."""
+    """Dataset with 512x512 CM crops with speckle noise.
+
+    TODO: migrate to PIL.
+    """
 
     def __init__(self, root_dir, which, noise_args, apply_random_crop=False):
         """
