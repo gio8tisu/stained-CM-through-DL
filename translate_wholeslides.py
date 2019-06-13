@@ -65,7 +65,8 @@ def main_fancy(args, dataset, G_AB, transform, numpy2vips, cuda):
                 res_np = np.moveaxis(res_np, 1, 3)  # to channels last.
                 res_np = (res_np[0] + 1) / 2  # shift pixel values to [0,1] range
                 res_vips = numpy2vips(res_np)  # convert to pyvips.Image
-                tiles.add_tile(res_vips)
+                res_vips = res_vips.crop(1, 1, size, size)
+                tiles.add_tile(res_vips, x_pos, y_pos)
         image = tiles.get_mosaic()
         if args.save_linear:
             save(args, i, image, scan)
@@ -103,7 +104,7 @@ if __name__ == '__main__':
     group.add_argument('--compression', action='store_true',
                        help='apply JPEG compression, assumes input images are in TIFF format.')
     parser.add_argument('--epoch', type=int, default=199, help='epoch to get model from.')
-    parser.add_argument('--patch-size', type=int, default=2048, help='size in pixels of patch/window.')
+    parser.add_argument('--patch-size', type=int, default=2049, help='size in pixels of patch/window.')
     parser.add_argument('--dataset-name', type=str, default='conf_data6', help='name of the saved model dataset.')
     parser.add_argument('--save-linear', action='store_true',
                         help="save linearly stained image (input of model) to '*_linear_*'.")
