@@ -73,42 +73,6 @@ def main_fancy(args, dataset, G_AB, transform, numpy2vips, cuda):
             save(args, i, image)
 
 
-def main_fancy_marc(args, dataset, G_AB, transform, numpy2vips, cuda):
-    size = args.patch_size
-    for i in range(len(dataset)):
-        scan = dataset[i]
-
-        (scan * 255.0).write_to_file('test2.jpg')
-
-        if args.verbose:
-            print('Transforming image {} of {}'.format(i + 1, len(dataset)))
-
-        scan = pad_image(scan, size // 2)
-        tiles = TileMosaic(scan, (size, size))
-
-        counter_x = 0
-        for x_pos in tqdm.trange(0, scan.width - size - 1, size // 2):
-            counter_y = 0
-            for y_pos in range(0, scan.height - size - 1, size // 2):
-                tile_scan = scan.crop(x_pos, y_pos, size, size)  # "grab" square window/patch from image.
-                tile_scan = transform(tile_scan)  # convert to torch tensor and channels first.
-
-                if cuda:
-                    tile_scan = tile_scan.cuda()
-
-                res = G_AB(tile_scan.unsqueeze(0))  # reshape first for batch axis.
-                res_np = res.data.cpu().numpy() if cuda else res.data.numpy()  # get numpy data
-                res_np = np.moveaxis(res_np, 1, 3)  # to channels last.
-                res_np = (res_np[0] + 1) / 2  # shift pixel values to [0,1] range
-                res_vips = numpy2vips(res_np)  # convert to pyvips.Image
-                tiles.add_tile(res_vips, x_pos, y_pos)
-        image = tiles.get_mosaic()
-        if args.save_linear:
-            save(args, i, image, scan)
-        else:
-            save(args, i, image)
-
-
 def save(args, i, transformed, linear=None):
     transformed *= 255.0
     output_file = os.path.join(args.output, '{}{}.{}'.format(args.prefix, i, args.format))
