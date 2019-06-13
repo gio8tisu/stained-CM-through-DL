@@ -1,4 +1,5 @@
 import os
+import pathlib
 import random
 
 import torch.utils.data
@@ -32,6 +33,8 @@ class ScansDataset(torch.utils.data.Dataset):
             transform_R (callable): Apply transform to R-mode image.
         """
         self.root_dir = root_dir
+        if only_R and only_F:
+            raise ValueError("Only one (if any) of 'only' options must be true.")
         self.only_R, self.only_F = only_R, only_F
         self.transform_stained = transform_stained
         self.transform_F = transform_F
@@ -47,12 +50,12 @@ class ScansDataset(torch.utils.data.Dataset):
         If stain, return stained image (using transforms.VirtualStainer).
         Return both modes otherwise.
         """
+        # load R mode if needed
         if not self.only_F:
-            r_file = self.scans[item] + '/DET#1/highres_raw.tif'
-            r_img = pyvips.Image.new_from_file(r_file)
+            r_img = self.get_r(item)
+        # load F mode if needed
         if not self.only_R:
-            f_file = self.scans[item] + '/DET#2/highres_raw.tif'
-            f_img = pyvips.Image.new_from_file(f_file)
+            f_img = self.get_f(item)
 
         if self.transform_F:
             f_img = self.transform_F(f_img)
@@ -70,6 +73,16 @@ class ScansDataset(torch.utils.data.Dataset):
         elif self.only_F:
             return f_img
         return {'F': f_img, 'R': r_img}
+
+    def get_f(self, item):
+        f_file = self.scans[item] + '/DET#2/highres_raw.tif'
+        f_img = pyvips.Image.new_from_file(f_file)
+        return f_img
+
+    def get_r(self, item):
+        r_file = self.scans[item] + '/DET#1/highres_raw.tif'
+        r_img = pyvips.Image.new_from_file(r_file)
+        return r_img
 
     def _list_scans(self):
         scans = []
@@ -81,71 +94,26 @@ class ScansDataset(torch.utils.data.Dataset):
         return scans
 
 
-class ScansCropsDataset(torch.utils.data.Dataset):
+class ScansCropsDataset(ScansDataset):
     """CM scans crops dataset with possibility to (linearly) stain.
 
     TODO: migrate to PIL.
     """
 
-    def __init__(self, root_dir, only_R=False, only_F=False, stain=False,
-                 transform_stained=None, transform_F=None, transform_R=None):
-        """
-        Args:
-            root_dir (str): Directory with "mosaic" directories.
-            only_R (bool): return only R mode.
-            only_F (bool): return only F mode. If both only_R and only_F are True,
-                           the former takes precedence.
-            stain (bool): Stain CM image using VirtualStainer
-            transform_stained (callable): Apply transform to stained image.
-            transform_F (callable): Apply transform to F-mode image.
-            transform_R (callable): Apply transform to R-mode image.
-        """
-        import pathlib
-        self.root_dir = pathlib.Path(root_dir)
-        self.only_R, self.only_F = only_R, only_F
-        self.transform_stained = transform_stained
-        self.transform_F = transform_F
-        self.transform_R = transform_R
-        self.crops = self._list_crops()  # List[Tuple] (R,F)
-        self.stainer = VirtualStainer() if stain else None
+    def get_f(self, item):
+        f_file = self.scans[item][1]  # second element of tuple is F mode
+        f_img = pyvips.Image.new_from_file(str(f_file))
+        return f_img
 
-    def __len__(self):
-        return len(self.crops)
+    def get_r(self, item):
+        r_file = self.scans[item][0]  # first element of tuple is R mode
+        r_img = pyvips.Image.new_from_file(str(r_file))
+        return r_img
 
-    def __getitem__(self, item):
-        """Get CM image.
-        If stain, return stained image (using transforms.VirtualStainer).
-        Return both modes otherwise.
-        """
-        # load R mode if needed
-        if not self.only_F:
-            r_file = self.crops[item][0]  # first element of tuple is R mode
-            r_img = pyvips.Image.new_from_file(str(r_file))
-        # load F mode if needed
-        if not self.only_R:
-            f_file = self.crops[item][1]  # first element of tuple is F mode
-            f_img = pyvips.Image.new_from_file(str(f_file))
-
-        if self.transform_F:
-            f_img = self.transform_F(f_img)
-        if self.transform_R:
-            r_img = self.transform_R(r_img)
-
-        if self.stainer:
-            img = self.stainer(f_img, r_img)
-            if self.transform_stained:
-                return self.transform_stained(img)
-            return img
-
-        if self.only_R:
-            return r_img
-        elif self.only_F:
-            return f_img
-        return {'F': f_img, 'R': r_img}
-
-    def _list_crops(self):
+    def _list_scans(self):
         crops_R = self.root_dir.glob('*R.tif')
         crops_F = self.root_dir.glob('*F.tif')
+        assert len(crops_F) == len(crops_R)
         crops = list(zip(sorted(crops_R), sorted(crops_F)))
 
         return crops

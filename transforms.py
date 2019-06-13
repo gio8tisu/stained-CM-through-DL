@@ -14,8 +14,8 @@ class VirtualStainer:
         self.E = [1, 0.55, 0.88]
         self.one_minus_E = list(map(lambda x: 1 - x, self.E))
 
-    def __call__(self, *args, **kwargs):
-        return self.virtual_staining(args[0], args[1])
+    def __call__(self, f, r):
+        return self.virtual_staining(f, r)
 
     def virtual_staining(self, f_instance, r_instance):
         """Apply staining transformation and return pyvips image.
