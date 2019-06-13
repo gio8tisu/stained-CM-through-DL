@@ -105,7 +105,8 @@ if __name__ == '__main__':
     parser.add_argument('--epoch', type=int, default=199, help='epoch to get model from.')
     parser.add_argument('--patch-size', type=int, default=2048, help='size in pixels of patch/window.')
     parser.add_argument('--dataset-name', type=str, default='conf_data6', help='name of the saved model dataset.')
-    parser.add_argument('--save-linear', help="save linearly stained image (input of model) to '*_linear_*'.")
+    parser.add_argument('--save-linear', action='store_true',
+                        help="save linearly stained image (input of model) to '*_linear_*'.")
     parser.add_argument('--overlap', action='store_true',
                         help='overlapping tiles (WSI inference technique by Thomas de Bel et al.)')
     parser.add_argument('-v', '--verbose', action='store_true')
