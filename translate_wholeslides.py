@@ -1,5 +1,4 @@
 import os
-from itertools import product
 
 from PIL import Image
 import pyvips
@@ -39,7 +38,10 @@ def main(args, dataset, G_AB, transform, numpy2vips, cuda):
                 res = numpy2vips(res_np)  # convert to pyvips.Image
                 ver_image = res if not ver_image else ver_image.join(res, "vertical")  # "stack" vertically
             image = ver_image if not image else image.join(ver_image, "horizontal")  # "stack" horizontally
-        save(args, i, image, scan)
+        if args.save_linear:
+            save(args, i, image, scan)
+        else:
+            save(args, i, image)
 
 
 def main_fancy(args, dataset, G_AB, transform, numpy2vips, cuda):
@@ -64,9 +66,11 @@ def main_fancy(args, dataset, G_AB, transform, numpy2vips, cuda):
                 res_np = (res_np[0] + 1) / 2  # shift pixel values to [0,1] range
                 res_vips = numpy2vips(res_np)  # convert to pyvips.Image
                 tiles.add_tile(res_vips)
-
         image = tiles.get_mosaic()
-        save(args, i, image, scan)
+        if args.save_linear:
+            save(args, i, image, scan)
+        else:
+            save(args, i, image)
 
 
 def main_fancy_marc(args, dataset, G_AB, transform, numpy2vips, cuda):
@@ -98,29 +102,27 @@ def main_fancy_marc(args, dataset, G_AB, transform, numpy2vips, cuda):
                 res_np = (res_np[0] + 1) / 2  # shift pixel values to [0,1] range
                 res_vips = numpy2vips(res_np)  # convert to pyvips.Image
                 tiles.add_tile(res_vips, x_pos, y_pos)
-        print('Saving')
         image = tiles.get_mosaic()
-        (image * 255.0).write_to_file('test.jpg')
-        quit()
+        if args.save_linear:
+            save(args, i, image, scan)
+        else:
+            save(args, i, image)
 
-        save(args, i, image, scan)
-        quit()
 
-
-def save(args, i, image, scan):
-    image = image * 255.0
+def save(args, i, transformed, linear=None):
+    transformed *= 255.0
     output_file = os.path.join(args.output, '{}{}.{}'.format(args.prefix, i, args.format))
     if args.verbose:
         print('Saving transformed image to ' + output_file)
     if args.compression:
-        (image * 255.0).tiffsave(output_file, tile=True, compression='jpeg', Q=90)
+        transformed.tiffsave(output_file, tile=True, compression='jpeg', Q=90)
     else:
-        (image * 255.0).write_to_file(output_file)
-    if args.save_linear:
+        transformed.write_to_file(output_file)
+    if linear:
         output_file = os.path.join(args.output, '{}_linear_{}.{}'.format(args.prefix, i, args.format))
         if args.verbose:
             print('Saving linear transform image to ' + output_file)
-        (scan * 255.0).write_to_file(output_file)
+        (linear * 255.0).write_to_file(output_file)
 
 
 if __name__ == '__main__':
