@@ -17,7 +17,7 @@ class VirtualStainer:
     def __call__(self, *args, **kwargs):
         return self.virtual_staining(args[0], args[1])
 
-    def virtual_staining(self, r_instance, f_instance):
+    def virtual_staining(self, f_instance, r_instance):
         """Apply staining transformation and return pyvips image.
 
         :type f_instance: pyvips.Image with range [0,1]
