@@ -25,12 +25,9 @@ class TileMosaic:
         :type original: pyvips.Image
         """
         self.tile_shape = tile_shape
-        self.crop = (2048, 2048)
-        self.steps = (range(0, original.height - tile_shape[0] - 1, tile_shape[0] // 4),
-                      range(0, original.width - tile_shape[1] - 1, tile_shape[1] // 4))
-        self.tiles = []
+
         self.background = pyvips.Image.black(original.width, original.height, bands=original.bands).copy(
-            interpretation='rgb')
+            interpretation=pyvips.enums.Interpretation.RGB)
 
         if center_crop[0] > tile_shape[0] or center_crop[1] > tile_shape[1]:
             raise ValueError('center_crop dimensions should be smaller than tile_shape')
@@ -40,8 +37,6 @@ class TileMosaic:
             self.crop = center_crop
 
         self.result = None
-        self.background = pyvips.Image.black(original.width, original.height,
-                                             bands=image.bands).copy(interpretation='rgb')
 
         self.weights = self._define_weight_matrix(window=window_type)
 
