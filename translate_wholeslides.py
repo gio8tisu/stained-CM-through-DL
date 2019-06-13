@@ -10,8 +10,9 @@ import tqdm
 import cyclegan.models
 import numpy_pyvips
 from datasets import ScansDataset
-from utils import TileMosaic
+from utils import TileMosaic, pad_image
 
+pyvips.cache_set_max(0)
 
 Image.MAX_IMAGE_PIXELS = None
 
@@ -37,15 +38,20 @@ def main(args, dataset, G_AB, transform, numpy2vips, cuda):
                 res = numpy2vips(res_np)  # convert to pyvips.Image
                 ver_image = res if not ver_image else ver_image.join(res, "vertical")  # "stack" vertically
             image = ver_image if not image else image.join(ver_image, "horizontal")  # "stack" horizontally
-        save(args, i, image, scan)
+        if args.save_linear:
+            save(args, i, image, scan)
+        else:
+            save(args, i, image)
 
 
 def main_fancy(args, dataset, G_AB, transform, numpy2vips, cuda):
     size = args.patch_size
     for i in range(len(dataset)):
         scan = dataset[i]
+
         if args.verbose:
             print('Transforming image {} of {}'.format(i + 1, len(dataset)))
+
         scan = pad_image(scan, size // 2)
         tiles = TileMosaic(scan, (size, size))
         for x_pos in tqdm.trange(0, scan.width - size - 1, size // 4):
@@ -60,34 +66,63 @@ def main_fancy(args, dataset, G_AB, transform, numpy2vips, cuda):
                 res_np = (res_np[0] + 1) / 2  # shift pixel values to [0,1] range
                 res_vips = numpy2vips(res_np)  # convert to pyvips.Image
                 tiles.add_tile(res_vips)
-        image = tiles.build_mosaic()
-        save(args, i, image, scan)
+        image = tiles.get_mosaic()
+        if args.save_linear:
+            save(args, i, image, scan)
+        else:
+            save(args, i, image)
 
 
-def save(args, i, image, scan):
+def main_fancy_marc(args, dataset, G_AB, transform, numpy2vips, cuda):
+    size = args.patch_size
+    for i in range(len(dataset)):
+        scan = dataset[i]
+
+        (scan * 255.0).write_to_file('test2.jpg')
+
+        if args.verbose:
+            print('Transforming image {} of {}'.format(i + 1, len(dataset)))
+
+        scan = pad_image(scan, size // 2)
+        tiles = TileMosaic(scan, (size, size))
+
+        counter_x = 0
+        for x_pos in tqdm.trange(0, scan.width - size - 1, size // 2):
+            counter_y = 0
+            for y_pos in range(0, scan.height - size - 1, size // 2):
+                tile_scan = scan.crop(x_pos, y_pos, size, size)  # "grab" square window/patch from image.
+                tile_scan = transform(tile_scan)  # convert to torch tensor and channels first.
+
+                if cuda:
+                    tile_scan = tile_scan.cuda()
+
+                res = G_AB(tile_scan.unsqueeze(0))  # reshape first for batch axis.
+                res_np = res.data.cpu().numpy() if cuda else res.data.numpy()  # get numpy data
+                res_np = np.moveaxis(res_np, 1, 3)  # to channels last.
+                res_np = (res_np[0] + 1) / 2  # shift pixel values to [0,1] range
+                res_vips = numpy2vips(res_np)  # convert to pyvips.Image
+                tiles.add_tile(res_vips, x_pos, y_pos)
+        image = tiles.get_mosaic()
+        if args.save_linear:
+            save(args, i, image, scan)
+        else:
+            save(args, i, image)
+
+
+def save(args, i, transformed, linear=None):
+    transformed *= 255.0
     output_file = os.path.join(args.output, '{}{}.{}'.format(args.prefix, i, args.format))
     if args.verbose:
         print('Saving transformed image to ' + output_file)
     if args.compression:
-        image.tiffsave(output_file, tile=True, compression='jpeg', Q=90)
+        transformed.tiffsave(output_file, tile=True, compression='jpeg', Q=90)
     else:
-        image.write_to_file(output_file)
-    if args.save_linear:
-        output_file = os.path.join(args.output, '{}{}.{}'.format(args.save_linear, i, args.format))
+        transformed.write_to_file(output_file)
+    if linear:
+        output_file = os.path.join(args.output, '{}_linear_{}.{}'.format(args.prefix, i, args.format))
         if args.verbose:
             print('Saving linear transform image to ' + output_file)
-        scan.write_to_file(output_file)
-
-
-def pad_image(image, padding):
-    """Zero-pad image.
-
-    :param padding: how many pixel to pad by on each side.
-    """
-    background = pyvips.Image.black(image.width + 2 * padding,
-                                    image.height + 2 * padding,
-                                    bands=image.bands)
-    return background.insert(image, padding, padding)
+        (linear * 255.0).write_to_file(output_file)
 
 
 if __name__ == '__main__':
@@ -96,14 +131,15 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Transform CM whole-slides to H&E.',
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('directory', type=str, help='directory with mosaic* directories')
+    parser.add_argument('--models-dir', required=True, help='directory with saved models')
     parser.add_argument('-o', '--output', required=True, help='output directory')
     parser.add_argument('--prefix', default='scan', help='output files prefix PREFIX')
     group = parser.add_mutually_exclusive_group()
-    group.add_argument('--format', default='tif', help='output image format')
+    group.add_argument('--format', default='jpg', help='output image format')
     group.add_argument('--compression', action='store_true',
                        help='apply JPEG compression, assumes input images are in TIFF format.')
     parser.add_argument('--epoch', type=int, default=199, help='epoch to get model from.')
-    parser.add_argument('--patch-size', type=int, default=1024, help='size in pixels of patch/window.')
+    parser.add_argument('--patch-size', type=int, default=2048, help='size in pixels of patch/window.')
     parser.add_argument('--dataset-name', type=str, default='conf_data6', help='name of the saved model dataset.')
     parser.add_argument('--save-linear', metavar='LIN_PREFIX',
                         help='save linearly stained image (input of model) to LIN_PREFIX.')
@@ -134,7 +170,7 @@ if __name__ == '__main__':
     G_AB = cyclegan.models.GeneratorResNet(res_blocks=9)
     if cuda:
         G_AB = G_AB.cuda()
-    G_AB.load_state_dict(torch.load('saved_models/%s/G_AB_%d.pth' % (args.dataset_name, args.epoch)))
+    G_AB.load_state_dict(torch.load('%s/%s/G_AB_%d.pth' % (args.models_dir, args.dataset_name, args.epoch)))
 
     G_AB.eval()
     with torch.no_grad():
