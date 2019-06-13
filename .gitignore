@@ -2,7 +2,3 @@
 .idea
 *__pycache__
 venv
-output_dir/
-test.jpg
-test2.jpg
-.gitignore
