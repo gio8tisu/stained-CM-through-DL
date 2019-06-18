@@ -9,8 +9,9 @@ import tqdm
 
 import cyclegan.models
 import numpy_pyvips
-from datasets import ScansDataset
+from datasets import SkinDataset
 from utils import TileMosaic, pad_image
+
 
 pyvips.cache_set_max(0)
 
@@ -54,8 +55,16 @@ def main_fancy(args, dataset, G_AB, transform, numpy2vips, cuda):
 
         scan = pad_image(scan, size // 2)
         tiles = TileMosaic(scan, (size, size))
+        if args.debug:
+            x_count = 0
         for x_pos in tqdm.trange(0, scan.width - size - 1, size // 4):
+            if args.debug and x_count > 5:
+                break
+            if args.debug:
+                y_count = 0
             for y_pos in range(0, scan.height - size - 1, size // 4):
+                if args.debug and y_count > 5:
+                    break
                 tile_scan = scan.crop(x_pos, y_pos, size, size)  # "grab" square window/patch from image.
                 tile_scan = transform(tile_scan)  # convert to torch tensor and channels first.
                 if cuda:
@@ -67,11 +76,14 @@ def main_fancy(args, dataset, G_AB, transform, numpy2vips, cuda):
                 res_vips = numpy2vips(res_np)  # convert to pyvips.Image
                 res_vips = res_vips.crop(1, 1, size, size)
                 tiles.add_tile(res_vips, x_pos, y_pos)
+                y_count += 1
+            x_count += 1
         image = tiles.get_mosaic()
         if args.save_linear:
             save(args, i, image, scan)
         else:
             save(args, i, image)
+        break
 
 
 def save(args, i, transformed, linear=None):
@@ -111,6 +123,7 @@ if __name__ == '__main__':
     parser.add_argument('--overlap', action='store_true',
                         help='overlapping tiles (WSI inference technique by Thomas de Bel et al.)')
     parser.add_argument('-v', '--verbose', action='store_true')
+    parser.add_argument('--debug', action='store_true')
 
     args = parser.parse_args()
     if args.verbose:
@@ -128,9 +141,9 @@ if __name__ == '__main__':
                                     transforms.ToTensor(),
                                     transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
                                     ])
-    dataset = ScansDataset(args.directory, stain=True,
-                           transform_F=transforms.Lambda(lambda x: x / 65535),
-                           transform_R=transforms.Lambda(lambda x: x / 65535))
+    dataset = SkinDataset(args.directory, stain=True,
+                          transform_F=transforms.Lambda(lambda x: x / 65535),
+                          transform_R=transforms.Lambda(lambda x: x / 65535))
 
     G_AB = cyclegan.models.GeneratorResNet(res_blocks=9)
     if cuda:
