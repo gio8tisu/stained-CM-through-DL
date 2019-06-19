@@ -177,9 +177,9 @@ class SkinCMDataset(CMDataset):
 
 
 class CMCropsDataset(CMDataset):
-    """CM skin scans crops dataset with possibility to (linearly) stain.
+    """CM scans crops dataset with possibility to (linearly) stain.
 
-    To extract crops from wholeslides use save_crops.py script
+    To extract crops from wholeslides use save_crops.py script.
     TODO: migrate to PIL.
     """
 
