@@ -3,7 +3,7 @@ from itertools import product
 import argparse
 import tqdm
 
-from datasets import ScansDataset
+import datasets
 
 
 '''
@@ -12,9 +12,8 @@ DET#2: R
 '''
 
 
-def main():
+def main(dataset):
     size = args.patch_size
-    dataset = ScansDataset(args.input_directory)
     for i in range(len(dataset)):
         scan = dataset[i]  # dictionary with keys 'F' and 'R'
         if args.verbose:
@@ -22,7 +21,6 @@ def main():
         y_x = product(range(0, scan['F'].height - size - 1, args.step),
                       range(0, scan['F'].width - size - 1, args.step))
         for y_pos, x_pos in tqdm.tqdm(y_x):
-            first_ok = False
             for mode, s in scan.items():
                 tile_scan = s.crop(x_pos, y_pos, size, size)  # "grab" square window/patch from image.
                 if args.discard:
@@ -48,8 +46,10 @@ def save(image, i, x, y, mode):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Save crops from CM whole-slides.',
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('input_directory', type=str, help='directory with mosaic* directories')
+    parser.add_argument('input_directory', type=str, help='data root')
     parser.add_argument('output_directory', help='output directory')
+    parser.add_argument('--dataset', choices=['skin', 'colon-CM', 'colon-HE'],
+                        help='dataset type. If dataset is colon-HE, borders will be discarded')
     parser.add_argument('--prefix', default='', help='output files prefix PREFIX')
     group = parser.add_mutually_exclusive_group()
     group.add_argument('--format', default='tif', help='output image format')
@@ -72,4 +72,10 @@ if __name__ == '__main__':
     if not args.step:
         args.step = args.patch_size
 
-    main()
+    if args.dataset == 'skin':
+        dataset = datasets.SkinCMDataset(args.input_directory)
+    elif args.dataset == 'colon-CM':
+        dataset = datasets.ColonCMDataset(args.input_directory)
+    elif args.dataset == 'colon-HE':
+        dataset = datasets.ColonHEDataset(args.input_directory)
+    main(dataset)
