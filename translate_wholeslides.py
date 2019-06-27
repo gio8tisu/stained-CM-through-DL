@@ -9,7 +9,7 @@ import tqdm
 
 import cyclegan.models
 import numpy_pyvips
-from datasets import SkinDataset
+from datasets import SkinCMDataset
 from utils import TileMosaic, pad_image
 
 
@@ -57,13 +57,13 @@ def main_fancy(args, dataset, G_AB, transform, numpy2vips, cuda):
         tiles = TileMosaic(scan, (size, size))
         if args.debug:
             x_count = 0
-        for x_pos in tqdm.trange(0, scan.width - size - 1, size // 4):
-            if args.debug and x_count > 5:
+        for x_pos in tqdm.trange(scan.width // 3 if args.debug else 0, scan.width - size - 1, size // 4):
+            if args.debug and x_count > 10:
                 break
             if args.debug:
                 y_count = 0
-            for y_pos in range(0, scan.height - size - 1, size // 4):
-                if args.debug and y_count > 5:
+            for y_pos in range(scan.height // 3 if args.debug else 0, scan.height - size - 1, size // 4):
+                if args.debug and y_count > 10:
                     break
                 tile_scan = scan.crop(x_pos, y_pos, size, size)  # "grab" square window/patch from image.
                 tile_scan = transform(tile_scan)  # convert to torch tensor and channels first.
@@ -101,6 +101,8 @@ def save(args, i, transformed, linear=None):
         if args.verbose:
             print('Saving linear transform image to ' + output_file)
         (linear * 255.0).write_to_file(output_file)
+    if args.verbose:
+        print('Done.')
 
 
 if __name__ == '__main__':
@@ -142,9 +144,9 @@ if __name__ == '__main__':
                                     transforms.ToTensor(),
                                     transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
                                     ])
-    dataset = SkinDataset(args.directory, stain=True,
-                          transform_F=transforms.Lambda(lambda x: x / 65535),
-                          transform_R=transforms.Lambda(lambda x: x / 65535))
+    dataset = SkinCMDataset(args.directory, stain=True,
+                            transform_F=transforms.Lambda(lambda x: x / 65535),
+                            transform_R=transforms.Lambda(lambda x: x / 65535))
 
     G_AB = cyclegan.models.GeneratorResNet(res_blocks=9)
     if cuda:

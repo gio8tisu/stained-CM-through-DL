@@ -4,6 +4,9 @@ import pyvips
 import numpy_pyvips
 
 
+pyvips.cache_set_max(0)
+
+
 class TileMosaic:
     """Class for WSI inference technique by Thomas de Bel et al.
 
@@ -81,6 +84,12 @@ class TileMosaic:
         tile *= self.weights
         tile_in_bg = self.background.copy().insert(tile, x_pos, y_pos)
         self.result = self.result + tile_in_bg if self.result else tile_in_bg
+        # TODO try this:
+        # in __init__:
+        # self.result = pyvips.Image.black(original.width, original.height, bands=original.bands).copy(
+        #    interpretation=pyvips.enums.Interpretation.RGB)
+        # in add_tile:
+        # self.result.draw_image(tile, x_pos, y_pos, mode=pyvips.enums.Combine.SUM)
 
     def get_mosaic(self):
         """return mosaic from tiles."""
