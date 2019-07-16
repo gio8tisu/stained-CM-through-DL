@@ -21,23 +21,28 @@ class TileMosaic:
     """
 
     def __init__(self, original,
-                 tile_shape=(2049, 2049), center_crop=(1025, 1025), window_type=0.25):
+                 tile_shape=(2048, 2048), center_crop=None, window_type=0.25):
         """Constructor.
 
         :param original: original image, padded by tile_shape / 2.
         :type original: pyvips.Image
         """
-        self.tile_shape = tile_shape
+        if isinstance(tile_shape, int):
+            self.tile_shape = (tile_shape,) * 2
+        else:
+            self.tile_shape = tile_shape
 
         self.background = pyvips.Image.black(original.width, original.height, bands=original.bands).copy(
             interpretation=pyvips.enums.Interpretation.RGB)
 
-        if center_crop[0] > tile_shape[0] or center_crop[1] > tile_shape[1]:
-            raise ValueError('center_crop dimensions should be smaller than tile_shape')
         if center_crop is None:
             self.crop = self.tile_shape
+        elif isinstance(center_crop, int):
+            self.crop = (center_crop,) * 2
         else:
             self.crop = center_crop
+        if self.crop[0] > self.tile_shape[0] or self.crop[1] > self.tile_shape[1]:
+            raise ValueError('center_crop dimensions should be smaller than tile_shape')
 
         self.result = None
 
@@ -45,26 +50,24 @@ class TileMosaic:
 
     def _define_weight_matrix(self, window='pyramid', center=None):
         """Return a pyvips.Image with weight values."""
+        if isinstance(window, (int, float)):
+            # multiplying by a scalar is equivalent to multiplying
+            # by a constant pyvips.Image.
+            return window
+        if center is None:  # use the middle of the image
+            center = [(self.crop[0] - 1) / 2, (self.crop[1] - 1) / 2]  # center pixel
+        Y, X = np.ogrid[:self.crop[1], :self.crop[0]]
         if window == 'pyramid':
-            if center is None:  # use the middle of the image
-                center = [self.crop[0] // 2, self.crop[1] // 2]  # center pixel
-            x, y = np.meshgrid(np.arange(self.crop[1]), np.arange(self.crop[0]))
-            w = 1 - np.maximum(np.abs(x - center[0]) / center[0], np.abs(y - center[1]) / center[1])
+            w = 1 - np.maximum(np.abs(X - center[0]) / center[0], np.abs(Y - center[1]) / center[1])
             return numpy_pyvips.Numpy2Vips.numpy2vips(w.reshape(w.shape + (1,)))
         elif window == 'circular':
-            if center is None:  # use the middle of the image
-                center = [self.crop[0] // 2, self.crop[1] // 2]  # center pixel
-            Y, X = np.ogrid[:self.crop[1], :self.crop[0]]
             dist_from_center = np.sqrt((X - center[0]) ** 2 + (Y - center[1]) ** 2)
             dist_from_center /= np.max(dist_from_center)
             w = 1 - dist_from_center
             return numpy_pyvips.Numpy2Vips.numpy2vips(w.reshape(w.shape + (1,)))
-        elif isinstance(window, (int, float)):
-            # multiplying by a scalar is equivalent to multiplying
-            # by a constant pyvips.Image.
-            return window
         else:
-            raise NotImplementedError
+            raise NotImplementedError("'window' parameter should be a scalar, "
+                                      "'pyramid' or 'circular")
 
     def add_tile(self, tile, x_pos, y_pos):
         """Add tile to build mosaic.
@@ -86,8 +89,8 @@ class TileMosaic:
         self.result = self.result + tile_in_bg if self.result else tile_in_bg
         # TODO try this:
         # in __init__:
-        # self.result = pyvips.Image.black(original.width, original.height, bands=original.bands).copy(
-        #    interpretation=pyvips.enums.Interpretation.RGB)
+        # self.result = pyvips.Image.black(original.width, original.height, bands=original.bands)
+        #                           .copy(interpretation=pyvips.enums.Interpretation.RGB)
         # in add_tile:
         # self.result.draw_image(tile, x_pos, y_pos, mode=pyvips.enums.Combine.SUM)
 
