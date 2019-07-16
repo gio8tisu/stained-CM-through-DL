@@ -38,7 +38,7 @@ def save(image, i, x, y, mode):
     if args.verbose:
         print('Saving crop to ' + file_name, end='\r')
     if args.compression:
-        image.tiffsave(file_name, tile=True, compression='jpeg', Q=95)
+        image.tiffsave(file_name, compression='jpeg', Q=95, tile=True, pyramid=True)
     else:
         image.write_to_file(file_name)
 
