@@ -125,8 +125,6 @@ def get_noise_args(noise):
     """return dictionary with np.random function and keyword arguments.
 
     :param noise: (str) noise name
-
-    TODO: Rayleigh random variable.
     """
     if noise == 'gaussian':
         return {'random_variable': np.random.normal,
@@ -137,6 +135,8 @@ def get_noise_args(noise):
     elif noise == 'uniform':
         return {'random_variable': np.random.uniform,
                 'low': 1 - 0.3464, 'high': 1 + 0.3464}
+    elif noise == 'rayleigh':
+        return {'random_variable': np.random.rayleigh, 'scale': 1}
 
 
 def compute_ssim(noisy_batch, clean_batch, median_filter=False):
