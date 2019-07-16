@@ -7,7 +7,7 @@ import warnings
 import torch.utils.data
 from torchvision import transforms
 import pyvips
-import openslide
+# import openslide
 
 import numpy_pyvips
 from transforms import VirtualStainer, MultiplicativeNoise
@@ -167,12 +167,12 @@ class SkinCMDataset(CMDataset):
 
     def get_f(self, item):
         f_file = self.scans[item] + '/DET#2/highres_raw.tif'
-        f_img = pyvips.Image.new_from_file(f_file)
+        f_img = pyvips.Image.new_from_file(f_file, access='random')
         return f_img
 
     def get_r(self, item):
         r_file = self.scans[item] + '/DET#1/highres_raw.tif'
-        r_img = pyvips.Image.new_from_file(r_file)
+        r_img = pyvips.Image.new_from_file(r_file, access='random')
         return r_img
 
 
@@ -198,12 +198,12 @@ class CMCropsDataset(CMDataset):
 
     def get_f(self, item):
         f_file = self.scans[item] + '_F.tif'
-        f_img = pyvips.Image.new_from_file(f_file)
+        f_img = pyvips.Image.new_from_file(f_file, access='random')
         return f_img
 
     def get_r(self, item):
         r_file = self.scans[item] + '_R.tif'
-        r_img = pyvips.Image.new_from_file(r_file)
+        r_img = pyvips.Image.new_from_file(r_file, access='random')
         return r_img
 
 
