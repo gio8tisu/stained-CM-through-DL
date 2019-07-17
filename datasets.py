@@ -136,9 +136,10 @@ class ColonHEDataset(torch.utils.data.Dataset):
         :return openslide.OpenSlide object
         """
         scan = openslide.OpenSlide(str(self.scans[item]))
+        # TODO: transform to PIL
         if self.alpha:
             return scan
-        # TODO: remove alpha channel and transform to PIL
+        # TODO: remove alpha channel
         # https://stackoverflow.com/questions/9166400/convert-rgba-png-to-rgb-with-pil
         if self.transform:
             scan = self.transform(scan)
@@ -190,11 +191,18 @@ class CMCropsDataset(CMDataset):
     def _list_scans(self):
         crops_R = {str(r)[:-6] for r in self.root_dir.glob('*R.tif')}
         crops_F = {str(f)[:-6] for f in self.root_dir.glob('*F.tif')}
-        if len(crops_F) != len(crops_R):
-            warnings.warn('Number of crops for R and F modes are different. '
-                          'Dataset will be only composed by the images with'
-                          'both modes available.')
-        return sorted(crops_R & crops_F)
+        if self.only_R:
+            crops = crops_R
+        elif self.only_F:
+            crops = crops_F
+        else:
+            # if use both modes, use crops with both modes available.
+            if len(crops_F) != len(crops_R):
+                warnings.warn('Number of crops for R and F modes are different. '
+                              'Dataset will be only composed by the images with'
+                              'both modes available.')
+            crops = crops_R & crops_F  # set intersection.
+        return sorted(crops)
 
     def get_f(self, item):
         f_file = self.scans[item] + '_F.tif'
