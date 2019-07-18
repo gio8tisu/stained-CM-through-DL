@@ -59,12 +59,12 @@ class DilatedConv(nn.Module):
 
     def __init__(self, in_channels=1, n_layers=6, n_filters=64):
         super(DilatedConv, self).__init__()
-        model = [nn.Sequential(nn.Conv2d(in_channels, n_filters, 3, padding=1, dilation=2),
+        model = [nn.Sequential(nn.Conv2d(in_channels, n_filters, 3, padding=2, dilation=2),
                                nn.BatchNorm2d(n_filters),
                                nn.PReLU())
                  ]
         for _ in range(n_layers - 1):
-            model += [nn.Sequential(nn.Conv2d(n_filters, n_filters, 3, padding=1, dilation=2),
+            model += [nn.Sequential(nn.Conv2d(n_filters, n_filters, 3, padding=2, dilation=2),
                                     nn.BatchNorm2d(n_filters),
                                     nn.PReLU())
                       ]
