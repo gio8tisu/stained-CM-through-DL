@@ -107,7 +107,10 @@ def save(args, i, transformed, linear=None):
         output_file = os.path.join(args.output, '{}_linear_{}.{}'.format(args.prefix, i, args.format))
         if args.verbose:
             print('Saving linear transform image to ' + output_file)
-        (linear * 255.0).write_to_file(output_file)
+        if args.compression:
+            transformed.tiffsave(output_file, tile=True, pyramid=True, compression='jpeg', Q=90)
+        else:
+            (linear * 255.0).write_to_file(output_file)
     if args.verbose:
         print('Done.')
 
