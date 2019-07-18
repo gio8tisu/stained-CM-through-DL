@@ -56,9 +56,9 @@ def main_fancy(args, dataset, G_AB, transform, numpy2vips, cuda):
         if args.verbose:
             print('Transforming image {} of {}'.format(i + 1, len(dataset)))
 
-        scan = pad_image(scan, size // 2)
         tiles = TileMosaic(scan, size, crop,
                            0.25 if args.window == 'rectangular' else args.window)
+        scan = pad_image(scan, size // 2)
         if args.debug:
             x_count = 0
         for x_pos in tqdm.trange(0 if not args.debug else scan.width // 3,
