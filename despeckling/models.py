@@ -76,7 +76,7 @@ class DilatedConv(nn.Module):
 
 
 class LogAddDespeckle(nn.Module):
-    """Apply log to pixel values, resnet block with addition, apply exponential."""
+    """Apply log to pixel values, residual block with addition, apply exponential."""
 
     def __init__(self, n_layers=6, n_filters=64):
         super(LogAddDespeckle, self).__init__()
@@ -90,7 +90,7 @@ class LogAddDespeckle(nn.Module):
 
 
 class DilatedLogAddDespeckle(nn.Module):
-    """Apply log to pixel values, resnet block with addition, apply exponential."""
+    """Apply log to pixel values, residual block with addition, apply exponential."""
 
     SAVE_LOG_EPSILON = 1E-3  # small number to avoid log(0).
 
@@ -106,7 +106,7 @@ class DilatedLogAddDespeckle(nn.Module):
 
 
 class LogSubtractDespeckle(nn.Module):
-    """Apply log to pixel values, resnet block with subtraction, apply exponential."""
+    """Apply log to pixel values, residual block with subtraction, apply exponential."""
 
     SAVE_LOG_EPSILON = 1E-3  # small number to avoid log(0).
 
@@ -122,7 +122,7 @@ class LogSubtractDespeckle(nn.Module):
 
 
 class MultiplyDespeckle(nn.Module):
-    """Resnet block with multiplication."""
+    """Residual block with multiplication."""
 
     def __init__(self, n_layers=6, n_filters=64):
         super(MultiplyDespeckle, self).__init__()
@@ -136,7 +136,7 @@ class MultiplyDespeckle(nn.Module):
 
 
 class DivideDespeckle(nn.Module):
-    """Resnet block with division."""
+    """Residual block with division."""
 
     SAVE_DIV_EPSILON = 1E-3  # small number to avoid division by zero.
 
