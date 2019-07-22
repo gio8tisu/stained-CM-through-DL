@@ -1,9 +1,12 @@
 import os
+from itertools import product
 
+from PIL import Image
 import numpy as np
 import pyvips
 import torch
 from torchvision import transforms
+import imageio
 
 import numpy_pyvips
 from datasets import SkinCMDataset
@@ -51,7 +54,7 @@ if __name__ == '__main__':
     parser.add_argument('--checkpoint-dir', required=True, help='directory with stored model checkpoints.')
     parser.add_argument('--epoch', type=int, help='epoch to get model from. (default: latest)')
     parser.add_argument('--model', help='model name.')
-    parser.add_argument('--layers', type=int, help='number of convolutional layers.')
+    parser.add_argument('--layers', default=6, type=int, help='number of convolutional layers.')
     parser.add_argument('--filters', default=64, type=int,
                         help='number of filters on each convolutional layer.')
     parser.add_argument('--patch-size', type=int, default=1024, help='size in pixels of patch/window.')
