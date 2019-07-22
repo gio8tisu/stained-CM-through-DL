@@ -14,7 +14,7 @@ from datasets import SkinCMDataset
 from utils import TileMosaic, pad_image
 
 
-pyvips.cache_set_max(0)
+pyvips.cache_set_max_mem(100)
 
 Image.MAX_IMAGE_PIXELS = None
 
@@ -38,8 +38,8 @@ def main(args, dataset, G_AB, transform, numpy2vips, cuda):
                 res_np = np.moveaxis(res_np, 1, 3)  # to channels last.
                 res_np = (res_np[0] + 1) / 2  # shift pixel values to [0,1] range
                 res = numpy2vips(res_np)  # convert to pyvips.Image
-                ver_image = res if not ver_image else ver_image.join(res, "vertical")  # "stack" vertically
-            image = ver_image if not image else image.join(ver_image, "horizontal")  # "stack" horizontally
+                ver_image = res if not ver_image else ver_image.join(res, 'vertical')  # "stack" vertically
+            image = ver_image if not image else image.join(ver_image, 'horizontal')  # "stack" horizontally
         if args.save_linear:
             save(args, i, image, scan)
         else:
@@ -120,7 +120,7 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description='Transform CM whole-slides to H&E.',
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('directory', type=str, help='directory with mosaic* directories')
+    parser.add_argument('data_directory', type=str, help='directory with mosaic* directories')
     parser.add_argument('--models-dir', required=True, help='directory with saved models')
     parser.add_argument('-o', '--output', required=True, help='output directory')
     parser.add_argument('--prefix', default='scan', help='output files prefix PREFIX')
