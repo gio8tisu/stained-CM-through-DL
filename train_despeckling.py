@@ -10,7 +10,7 @@ import numpy as np
 from skimage.measure import compare_ssim as ssim
 import tqdm
 
-from datasets import NoisyCMScansDataset
+from datasets import NoisyCMCropsDataset
 from despeckling import models
 
 # torch.backends.cudnn.enabled = False
@@ -23,7 +23,7 @@ def main(opt):
     # Define dataset.
     noise_args = get_noise_args(opt.noise)
     # dataset returns (noisy, clean) tuple
-    dataset = NoisyCMScansDataset(opt.data_root, 'F', noise_args, apply_random_crop=(not opt.no_crop))
+    dataset = NoisyCMCropsDataset(opt.data_root, 'F', noise_args, apply_random_crop=(not opt.no_crop))
     train_size = int(0.9 * len(dataset))
     val_size = len(dataset) - train_size
     train_dataset, val_dataset = random_split(dataset, [train_size, val_size])
