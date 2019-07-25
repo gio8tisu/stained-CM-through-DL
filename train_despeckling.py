@@ -163,7 +163,7 @@ def get_model(model_str, *args, **kwargs):
         model_class = getattr(models, class_name)
     except AttributeError:
         raise AttributeError(model_str + 'model does not exist.')
-    return class_name(*args, **kwargs)
+    return model_class(*args, **kwargs)
 
 
 def write_lc_step(*args):
