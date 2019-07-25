@@ -153,23 +153,17 @@ def compute_ssim(noisy_batch, clean_batch, median_filter=False):
     return ssim_sum / noisy_batch.shape[0]
 
 
-def get_model(model_str, num_layers, num_filters):
-    """return nn.Module based on model_str.
-
-    TODO: get model class with importlib library.
-    """
-    if model_str == 'log_add':
-        return models.LogAddDespeckle(num_layers, num_filters)
-    elif model_str == 'log_subtract':
-        return models.LogSubtractDespeckle(num_layers, num_filters)
-    elif model_str == 'log_add_dilated':
-        return models.DilatedLogAddDespeckle(num_layers, num_filters)
-    elif model_str == 'multiply':
-        return models.MultiplyDespeckle(num_layers, num_filters)
-    elif model_str == 'divide':
-        return models.DivideDespeckle(num_layers, num_filters)
-    else:
-        raise NotImplementedError(model_str + 'model does not exist.')
+def get_model(model_str, *args, **kwargs):
+    """return nn.Module based on model_str."""
+    class_name = ''.join(
+        map(lambda s: s[0].upper() + s[1:],
+            model_str.split('_'))
+        ) + 'Despeckle'
+    try:
+        model_class = getattr(models, class_name)
+    except AttributeError:
+        raise AttributeError(model_str + 'model does not exist.')
+    return class_name(*args, **kwargs)
 
 
 def write_lc_step(*args):
