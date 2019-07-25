@@ -10,7 +10,7 @@ import numpy as np
 from skimage.measure import compare_ssim as ssim
 import tqdm
 
-from datasets import NoisyCMScansDataset
+from datasets import NoisyCMCropsDataset
 from despeckling import models
 
 # torch.backends.cudnn.enabled = False
@@ -23,7 +23,7 @@ def main(opt):
     # Define dataset.
     noise_args = get_noise_args(opt.noise)
     # dataset returns (noisy, clean) tuple
-    dataset = NoisyCMScansDataset(opt.data_root, 'F', noise_args, apply_random_crop=(not opt.no_crop))
+    dataset = NoisyCMCropsDataset(opt.data_root, 'F', noise_args, apply_random_crop=(not opt.no_crop))
     train_size = int(0.9 * len(dataset))
     val_size = len(dataset) - train_size
     train_dataset, val_dataset = random_split(dataset, [train_size, val_size])
@@ -32,7 +32,7 @@ def main(opt):
     val_dataloader = DataLoader(val_dataset, batch_size=opt.batch_size, num_workers=4)
 
     # Define model and loss criterion.
-    model = get_model(opt.model, opt.layers)
+    model = get_model(opt.model, opt.layers, opt.filters)
     if opt.criterion == 'mse':
         criterion = MSELoss()
     elif opt.criterion == 'l1':
@@ -75,7 +75,6 @@ def main(opt):
 
             if opt.verbose:
                 input_and_target.set_description('Train loss = {0:.3f}'.format(loss))
-            break
         loss_hist.append((epoch, med_loss / (i + 1)))
 
         # VALIDATION.
@@ -106,7 +105,6 @@ def main(opt):
                         + ' Input loss = {0:.3f}'.format(prev_loss_eval)
                         + ' Input SSIM = {0:.3f}'.format(ssim_input)
                         + ' Output SSIM = {0:.3f}'.format(ssim_output))
-                break
         loss_hist_eval.append((epoch, med_loss_eval / (i + 1)))
         ssim_hist_eval.append((epoch, med_ssim_eval / (i + 1)))
         write_lc_step(epoch, loss_hist[-1][1], loss_hist_eval[-1][1], ssim_hist_eval[-1][1])
@@ -125,8 +123,6 @@ def get_noise_args(noise):
     """return dictionary with np.random function and keyword arguments.
 
     :param noise: (str) noise name
-
-    TODO: Rayleigh random variable.
     """
     if noise == 'gaussian':
         return {'random_variable': np.random.normal,
@@ -137,6 +133,8 @@ def get_noise_args(noise):
     elif noise == 'uniform':
         return {'random_variable': np.random.uniform,
                 'low': 1 - 0.3464, 'high': 1 + 0.3464}
+    elif noise == 'rayleigh':
+        return {'random_variable': np.random.rayleigh, 'scale': 1}
 
 
 def compute_ssim(noisy_batch, clean_batch, median_filter=False):
@@ -155,7 +153,7 @@ def compute_ssim(noisy_batch, clean_batch, median_filter=False):
     return ssim_sum / noisy_batch.shape[0]
 
 
-def get_model(model_str, num_layers):
+def get_model(model_str, *args, **kwargs):
     """return nn.Module based on model_str."""
     class_name = ''.join(
         map(lambda s: s[0].upper() + s[1:],
@@ -165,7 +163,7 @@ def get_model(model_str, num_layers):
         model_class = getattr(models, class_name)
     except AttributeError:
         raise AttributeError(model_str + 'model does not exist.')
-    return class_name(num_layers)
+    return class_name(*args, **kwargs)
 
 
 def write_lc_step(*args):
@@ -189,6 +187,8 @@ if __name__ == '__main__':
     parser.add_argument('--batch-size', type=int, default=32)
     parser.add_argument('--model', default='log_add', help='model name.')
     parser.add_argument('--layers', default=6, type=int, help='number of convolutional layers.')
+    parser.add_argument('--filters', default=64, type=int,
+                        help='number of filters on each convolutional layer.')
     parser.add_argument('--criterion', default='mse', choices=['mse', 'l1'], help='loss criterion.')
     parser.add_argument('--optim', default='adam', help='optimizer name.')
     parser.add_argument('-l', '--learning-rate', dest='lr', type=int, default=1e-3)
@@ -196,10 +196,10 @@ if __name__ == '__main__':
     parser.add_argument('--save-period', type=int, metavar='EPOCH', default=5,
                         help='save model checkpoint after every EPOCH')
     parser.add_argument('--no-crop', action='store_true', help='do not apply 256x256 random crop')
-    parser.add_argument('--noise', default='gamma', choices=['gaussian', 'gamma', 'uniform'],
+    parser.add_argument('--noise', default='gamma', choices=['gaussian', 'gamma', 'uniform', 'rayleigh'],
                         help='type of noise Gaussian(1, 0.2) or Gamma(L, L).')
     parser.add_argument('-L', '--looks', metavar='L', dest='L', default=1, type=int,
-                        help='apply median filter on validation')
+                        help='number of looks used in each slide, used for gamma noise model.')
     parser.add_argument('--median', action='store_true', help='apply median filter on validation')
     parser.add_argument('-v', '--verbose', action='store_true')
 
