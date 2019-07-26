@@ -264,11 +264,11 @@ class NoisyCMCropsDataset(CMCropsDataset):
         """
         if which == 'F':
             super().__init__(
-                root_dir, only_F=True, transform_F=transforms.Lambda(lambda x: x / 65535),
+                root_dir, only_F=True, transform_F=transforms.Lambda(lambda x: x / 255),
                 return_prefix=return_prefix)
         elif which == 'R':
             super().__init__(
-                root_dir, only_R=True, transform_R=transforms.Lambda(lambda x: x / 65535),
+                root_dir, only_R=True, transform_R=transforms.Lambda(lambda x: x / 255),
                 return_prefix=return_prefix)
         else:
             raise ValueError("'which' parameter should be 'F' or 'R'")
