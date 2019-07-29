@@ -5,13 +5,14 @@ from PIL import Image
 import pyvips
 import numpy as np
 import torch
-from torchvision import transforms
+import torchvision.transforms
 import tqdm
 
 import cyclegan.models
 import numpy_pyvips
 from datasets import SkinCMDataset
 from utils import TileMosaic, pad_image
+import transforms
 
 
 pyvips.cache_set_max_mem(100)
@@ -115,7 +116,7 @@ def save(args, i, transformed, linear=None):
 def normalize(img):
     """Normalize pyvips.Image by min and max.
 
-    Intended to be used with torch.transforms.Lambda
+    Intended to be used with torchvision.transforms.Lambda
     """
     min_ = img.min()
     range_ = min_ - img.max()
@@ -125,7 +126,7 @@ def normalize(img):
 def scale(img, s=65535):
     """Scale pyvips.Image by s.
 
-    Intended to be used with torch.transforms.Lambda
+    Intended to be used with torchvision.transforms.Lambda
     """
     return img / s
 
@@ -139,9 +140,9 @@ if __name__ == '__main__':
     parser.add_argument('--models-dir', required=True, help='directory with saved models')
     parser.add_argument('-o', '--output', required=True, help='output directory')
     parser.add_argument('--prefix', default='scan', help='output files prefix PREFIX')
-    group = parser.add_mutually_exclusive_group()
-    group.add_argument('--format', default='jpg', help='output image format')
-    group.add_argument('--compression', action='store_true', help='apply JPEG compression (with Q=90).')
+    format_group = parser.add_mutually_exclusive_group()
+    format_group.add_argument('--format', default='jpg', help='output image format')
+    format_group.add_argument('--compression', action='store_true', help='apply JPEG compression (with Q=90).')
     parser.add_argument('--epoch', type=int, default=199, help='epoch to get model from.')
     parser.add_argument('--patch-size', type=int, default=2048, help='size in pixels of patch/window.')
     parser.add_argument('--crop-size', type=int,
@@ -157,8 +158,11 @@ if __name__ == '__main__':
     parser.add_argument('--window', default='rectangular',
                         help='window type for overlap option, should be and integer or one of: '
                              + 'rectangular, pyramid, circular or a number.')
-    parser.add_argument('--normalize', action='store_true',
-                        help='normalize slide (subtract min and divide by range)')
+    normalization_group = parser.add_mutually_exclusive_group()
+    normalization_group.add_argument('--normalize', action='store_true',
+                                     help='normalize slide (subtract min and divide by range)')
+    normalization_group.add_argument('--normalization-method',
+                                     choices=[None, 'independent', 'global', 'average'])
     parser.add_argument('-v', '--verbose', action='store_true')
     parser.add_argument('--debug', action='store_true')
 
@@ -184,17 +188,18 @@ if __name__ == '__main__':
     numpy2vips = numpy_pyvips.Numpy2Vips()
 
     # transform to apply patch-by-patch.
-    patch_transform = transforms.Compose(
+    patch_transform = torchvision.transforms.Compose(
         [numpy_pyvips.Vips2Numpy(),
-         transforms.ToTensor(),
-         transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+         torchvision.transforms.ToTensor(),
+         torchvision.transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
          ]
     )
     # dataset of confocal large slides.
     dataset = SkinCMDataset(
         args.data_directory, stain=True,
-        transform_F=transforms.Lambda(normalize if args.normalize else scale),
-        transform_R=transforms.Lambda(normalize if args.normalize else scale)
+        transform_F=torchvision.transforms.Lambda(normalize if args.normalize else scale),
+        transform_R=torchvision.transforms.Lambda(normalize if args.normalize else scale),
+        transform=transforms.CMNormalizer(args.normalization_method) if args.normalization_method else None
     )
 
     G_AB = cyclegan.models.GeneratorResNet(res_blocks=9)
