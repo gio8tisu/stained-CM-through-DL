@@ -65,7 +65,7 @@ class CMDataset(torch.utils.data.Dataset, metaclass=ABCMeta):
             r_img, f_img = self.transform(r_img, f_img)
 
         if self.stainer:
-            img = self.stainer(f_img, r_img)
+            img = self.stainer(r_img, f_img)
             if self.transform_stained:
                 return self.transform_stained(img)
             return img

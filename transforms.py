@@ -14,17 +14,14 @@ class VirtualStainer:
         self.E = [1, 0.55, 0.88]
         self.one_minus_E = list(map(lambda x: 1 - x, self.E))
 
-    def __call__(self, f, r):
-        return self.virtual_staining(f, r)
-
-    def virtual_staining(self, f_instance, r_instance):
+    def __call__(self, sample_R, sample_F):
         """Apply staining transformation and return pyvips image.
 
         :type f_instance: pyvips.Image with range [0,1]
         :type r_instance: pyvips.Image with range [0,1]
         """
-        f_res = f_instance * self.one_minus_H
-        r_res = r_instance * self.one_minus_E
+        f_res = sample_F * self.one_minus_H
+        r_res = sample_R * self.one_minus_E
 
         image = 1 - f_res - r_res
         return image.copy(interpretation=pyvips.enums.Interpretation.RGB)
