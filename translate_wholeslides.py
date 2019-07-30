@@ -122,7 +122,7 @@ def normalize(img):
     Intended to be used with torchvision.transforms.Lambda
     """
     min_ = img.min()
-    range_ = min_ - img.max()
+    range_ = img.max() - min_
     return (img - min_) / range_
 
 
