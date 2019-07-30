@@ -64,12 +64,13 @@ class CMNormalizer:
             new_R = self._normalize(sample_R)
             new_F = self._normalize(sample_F)
         elif self.method == 'global':
-            min_R = sample_R.min()
-            min_F = sample_F.min()
-            max_R = sample_R.max()
-            max_F = sample_F.max()
+            # compute min and max values.
+            min_R, max_R = sample_R.min(), sample_R.max()
+            min_F, max_F = sample_F.min(), sample_F.max()
+            # get global min and max.
             min_ = min_R if min_R > min_F else min_F
             max_ = max_R if max_R > max_F else max_F
+            # normalize with global min and max.
             new_R = self._normalize(sample_R, min_, max_)
             new_F = self._normalize(sample_F, min_, max_)
         else:  # self.method == average
@@ -82,12 +83,9 @@ class CMNormalizer:
 
     @staticmethod
     def _normalize(img, min_=None, max_=None):
-        """Normalize pyvips.Image by min and max.
-
-        Intended to be used with torch.transforms.Lambda
-        """
+        """Normalize pyvips.Image by min and max."""
         if min_ is None:
             min_ = img.min()
         if max_ is None:
             max_ = img.max()
-        return (img - min_) / (min_ - max_)
+        return (img - min_) / (max_ - min_)
