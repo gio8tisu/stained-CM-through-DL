@@ -26,7 +26,7 @@ def return_prefix_decorator(getitem):
 
 class CMDataset(torch.utils.data.Dataset, metaclass=ABCMeta):
     """CM scans dataset abstract class with possibility to (linearly) stain."""
-    def __init__(self, only_R=False, only_F=False, stain=False,
+    def __init__(self, transform=None, only_R=False, only_F=False, stain=False,
                  transform_stained=None, transform_F=None, transform_R=None,
                  return_prefix=False):
         """
@@ -38,6 +38,8 @@ class CMDataset(torch.utils.data.Dataset, metaclass=ABCMeta):
             transform_stained (callable): Apply transform to stained image.
             transform_F (callable): Apply transform to F-mode image.
             transform_R (callable): Apply transform to R-mode image.
+            transform (callable): Apply transform to both modes (after respective transforms).
+                                  R and F modes will be used as argument in that order.
         """
         if only_R and only_F:
             raise ValueError("Only one (if any) of 'only' options must be true.")
@@ -45,6 +47,7 @@ class CMDataset(torch.utils.data.Dataset, metaclass=ABCMeta):
         self.transform_stained = transform_stained
         self.transform_F = transform_F
         self.transform_R = transform_R
+        self.transform = transform
         self.scans = self._list_scans()
         self.stainer = VirtualStainer() if stain else None
         self.return_prefix = return_prefix
@@ -91,8 +94,11 @@ class CMDataset(torch.utils.data.Dataset, metaclass=ABCMeta):
         if self.transform_R:
             r_img = self.transform_R(r_img)
 
+        if self.transform:
+            r_img, f_img = self.transform(r_img, f_img)
+
         if self.stainer:
-            img = self.stainer(f_img, r_img)
+            img = self.stainer(r_img, f_img)
             if self.transform_stained:
                 return self.transform_stained(img)
             return img
