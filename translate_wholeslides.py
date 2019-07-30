@@ -205,12 +205,13 @@ if __name__ == '__main__':
     G_AB = cyclegan.models.GeneratorResNet(res_blocks=9)
     if cuda:
         G_AB = G_AB.cuda()
+    # load model parameters using dataset_name and epoch number from CLI.
     G_AB.load_state_dict(torch.load(
         os.path.join(args.models_dir, args.dataset_name, f'G_AB_{args.epoch}.pth')
     ))
 
-    G_AB.eval()
-    with torch.no_grad():
+    G_AB.eval()  # use evaluation/validation mode.
+    with torch.no_grad():  # to avoid autograd overhead.
         if args.overlap:
             main_fancy(args, dataset, G_AB, patch_transform, numpy2vips, cuda)
         else:
