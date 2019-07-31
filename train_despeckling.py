@@ -14,6 +14,8 @@ from datasets import NoisyCMCropsDataset
 from despeckling import models
 
 # torch.backends.cudnn.enabled = False
+torch.manual_seed(0)
+np.random.seed(0)
 
 
 def main(opt):

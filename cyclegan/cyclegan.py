@@ -21,6 +21,10 @@ import torch.nn.functional as F
 import torch
 
 
+torch.manual_seed(0)
+np.random.seed(0)
+
+
 def main(opt):
     # Create sample and checkpoint directories
     os.makedirs('images/%s' % opt.dataset_name, exist_ok=True)
