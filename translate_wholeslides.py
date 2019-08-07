@@ -1,7 +1,6 @@
 import os
 from math import ceil
 
-from PIL import Image
 import pyvips
 import numpy as np
 import torch
@@ -16,8 +15,6 @@ import transforms
 
 
 pyvips.cache_set_max_mem(100)
-
-Image.MAX_IMAGE_PIXELS = None
 
 
 def main(args, dataset, G_AB, transform, numpy2vips, cuda):
@@ -49,8 +46,8 @@ def main(args, dataset, G_AB, transform, numpy2vips, cuda):
 
 def main_fancy(args, dataset, G_AB, transform, numpy2vips, cuda):
     size = args.patch_size
-    crop = args.crop_size if args.crop_size else size // 2
-    step = args.step if args.step else ceil(crop / 2)
+    crop = args.crop_size if args.crop_size else size // 2 + 1
+    step = args.step if args.step else crop // 2
     for i in range(len(dataset)):
         scan = dataset[i]
 
@@ -151,9 +148,9 @@ if __name__ == '__main__':
     parser.add_argument('--patch-size', type=int, default=2048, help='size in pixels of patch/window.')
     parser.add_argument('--crop-size', type=int,
                         help='Crop size after transform, only used with --overlap option'
-                             + ' (if None, fallback to PATCH_SIZE // 2)')
+                             + ' (if None, fallback to PATCH_SIZE // 2 + 1)')
     parser.add_argument('--step', type=int,
-                        help='Step size between patches. (if None, fallback to ceil(CROP_SIZE / 2)')
+                        help='Step size between patches. (if None, fallback to CROP_SIZE / 2')
     parser.add_argument('--dataset-name', type=str, default='conf_data6', help='name of the saved model dataset.')
     parser.add_argument('--save-linear', action='store_true',
                         help="save linearly stained image (input of model) to '*_linear_*'.")
@@ -211,7 +208,8 @@ if __name__ == '__main__':
         G_AB = G_AB.cuda()
     # load model parameters using dataset_name and epoch number from CLI.
     G_AB.load_state_dict(torch.load(
-        os.path.join(args.models_dir, args.dataset_name, f'G_AB_{args.epoch}.pth')
+        os.path.join(args.models_dir, args.dataset_name, f'G_AB_{args.epoch}.pth'),
+        map_location='cpu'  # TODO: delete after testing in cpu.
     ))
 
     G_AB.eval()  # use evaluation/validation mode.
