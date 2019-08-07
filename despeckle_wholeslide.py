@@ -31,7 +31,7 @@ def main(args, dataset, model, to_tensor, numpy2vips, cuda):
                 res = model(tile_scan.unsqueeze(0))
                 res_np = res.data.cpu().numpy() if cuda else res.data.numpy()  # get numpy data
                 res_np = np.moveaxis(res_np, 1, 3)  # to channels last.
-                res_np = res_np[0] * 65535
+                res_np = res_np[0]
                 res = numpy2vips(res_np)  # convert to pyvips.Image
                 ver_image = res if not ver_image else ver_image.join(res, "vertical")  # "stack" vertically
             image = ver_image if not image else image.join(ver_image, "horizontal")  # "stack" horizontally
@@ -53,13 +53,11 @@ if __name__ == '__main__':
                        help='apply JPEG compression, assumes input images are in TIFF format.')
     parser.add_argument('--checkpoint-dir', required=True, help='directory with stored model checkpoints.')
     parser.add_argument('--epoch', type=int, help='epoch to get model from. (default: latest)')
-    parser.add_argument('--model', help='model name.')
+    parser.add_argument('--model', default='log_add', help='model name.')
     parser.add_argument('--layers', default=6, type=int, help='number of convolutional layers.')
     parser.add_argument('--filters', default=64, type=int,
                         help='number of filters on each convolutional layer.')
     parser.add_argument('--patch-size', type=int, default=1024, help='size in pixels of patch/window.')
-    parser.add_argument('--save-linear', metavar='LIN_PREFIX',
-                        help='save linearly stained image (input of model) to LIN_PREFIX.')
     parser.add_argument('-v', '--verbose', action='store_true')
 
     args = parser.parse_args()
