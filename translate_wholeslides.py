@@ -200,7 +200,7 @@ if __name__ == '__main__':
         args.data_directory, stain=True,
         transform_F=torchvision.transforms.Lambda(normalize if args.normalize else scale),
         transform_R=torchvision.transforms.Lambda(normalize if args.normalize else scale),
-        transform=transforms.CMNormalizer(args.normalization_method) if args.normalization_method else None
+        transform=transforms.CMMinMaxNormalizer(args.normalization_method) if args.normalization_method else None
     )
 
     G_AB = cyclegan.models.GeneratorResNet(res_blocks=9)
@@ -209,7 +209,6 @@ if __name__ == '__main__':
     # load model parameters using dataset_name and epoch number from CLI.
     G_AB.load_state_dict(torch.load(
         os.path.join(args.models_dir, args.dataset_name, f'G_AB_{args.epoch}.pth'),
-        map_location='cpu'  # TODO: delete after testing in cpu.
     ))
 
     G_AB.eval()  # use evaluation/validation mode.

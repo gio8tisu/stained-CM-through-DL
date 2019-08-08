@@ -1,8 +1,5 @@
-"""Image transformation classes for use with pyvips."""
-
 import pyvips
-
-import numpy_pyvips
+import torch
 
 
 class VirtualStainer:
@@ -37,17 +34,18 @@ class MultiplicativeNoise:
         """
         self.random_variable = random_variable
         self.parameters = parameters
-        self.numpy2vips = numpy_pyvips.Numpy2Vips()
 
-    def __call__(self, img: pyvips.Image):
+    def __call__(self, img):
         """return clean image and contaminated image."""
-        size = (img.height, img.width, img.bands)
-        r = self.numpy2vips(self.random_variable(size=size, **self.parameters))
-        return r * img
+        noise = torch.tensor(
+            self.random_variable(size=img.size(), **self.parameters),
+            device=img.device, dtype=img.dtype, requires_grad=False
+        )
+        return img * noise, img
 
 
-class CMNormalizer:
-    """Normalize CM sample with different methods.
+class CMMinMaxNormalizer:
+    """Min-max normalize CM sample with different methods.
 
     Independent method "min-max" normalizes each mode separately.
     Global method "min-max" normalizes with global min and max values.

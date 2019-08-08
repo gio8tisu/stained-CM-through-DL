@@ -6,12 +6,14 @@ import torch
 from torch.utils.data import DataLoader, random_split
 from torch.nn import MSELoss, L1Loss
 from torch.optim import Adam
+from torchvision import transforms
 import numpy as np
 from skimage.measure import compare_ssim as ssim
 import tqdm
 
-from datasets import NoisyCMCropsDataset
+from datasets import CMCropsDataset
 from despeckling import models
+from transforms import MultiplicativeNoise
 
 # torch.backends.cudnn.enabled = False
 torch.manual_seed(0)
@@ -20,12 +22,19 @@ np.random.seed(0)
 
 def main(opt):
     cuda = True if torch.cuda.is_available() else False
-    device = torch.device("cuda") if cuda else torch.device("cpu")
+    device = torch.device('cuda') if cuda else torch.device('cpu')
 
     # Define dataset.
     noise_args = get_noise_args(opt.noise)
+    transform = transforms.Compose(
+        [transforms.RandomCrop(opt.crop_size),
+         transforms.ToTensor(),
+         transforms.Lambda(lambda x: x / 255),
+         MultiplicativeNoise(**noise_args)  # returns (noisy, clean) tuple
+         ]
+    )
     # dataset returns (noisy, clean) tuple
-    dataset = NoisyCMCropsDataset(opt.data_root, 'F', noise_args, apply_random_crop=(not opt.no_crop))
+    dataset = CMCropsDataset(opt.data_root, only_F=True, transform_F=transform)
     train_size = int(0.9 * len(dataset))
     val_size = len(dataset) - train_size
     train_dataset, val_dataset = random_split(dataset, [train_size, val_size])
@@ -157,10 +166,8 @@ def compute_ssim(noisy_batch, clean_batch, median_filter=False):
 
 def get_model(model_str, *args, **kwargs):
     """return nn.Module based on model_str."""
-    class_name = ''.join(
-        map(lambda s: s[0].upper() + s[1:],
-            model_str.split('_'))
-        ) + 'Despeckle'
+    # Split by '-' character, capitalize first letter # and append 'Despeckle'.
+    class_name = ''.join(map(str.capitalize, model_str.split('_'))) + 'Despeckle'
     try:
         model_class = getattr(models, class_name)
     except AttributeError:
@@ -197,7 +204,7 @@ if __name__ == '__main__':
     parser.add_argument('-e', '--epochs', type=int, default=20)
     parser.add_argument('--save-period', type=int, metavar='EPOCH', default=5,
                         help='save model checkpoint after every EPOCH')
-    parser.add_argument('--no-crop', action='store_true', help='do not apply 256x256 random crop')
+    parser.add_argument('--crop-size', type=int, default=256, help='size of image after random crop')
     parser.add_argument('--noise', default='gamma', choices=['gaussian', 'gamma', 'uniform', 'rayleigh'],
                         help='type of noise Gaussian(1, 0.2) or Gamma(L, L).')
     parser.add_argument('-L', '--looks', metavar='L', dest='L', default=1, type=int,

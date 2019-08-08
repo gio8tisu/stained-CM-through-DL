@@ -7,6 +7,7 @@ import warnings
 import torch.utils.data
 from torchvision import transforms
 import pyvips
+from PIL import Image
 # import openslide
 
 import numpy_pyvips
@@ -89,11 +90,9 @@ class CMDataset(torch.utils.data.Dataset, metaclass=ABCMeta):
         If return_prefix, return (sample, prefix) tuple.
         """
         # load R mode if needed
-        if not self.only_F:
-            r_img = self.get_r(item)
+        r_img = None if self.only_F else self.get_r(item)
         # load F mode if needed
-        if not self.only_R:
-            f_img = self.get_f(item)
+        f_img = None if self.only_R else self.get_f(item)
 
         if self.transform_F:
             f_img = self.transform_F(f_img)
@@ -222,7 +221,6 @@ class CMCropsDataset(CMDataset):
     """CM scans crops dataset with possibility to (linearly) stain.
 
     To extract crops from wholeslides use save_crops.py script.
-    TODO: migrate to PIL.
     """
 
     def __init__(self, root_dir, **kwargs):
@@ -247,12 +245,12 @@ class CMCropsDataset(CMDataset):
 
     def get_f(self, item):
         f_file = self.scans[item] + '_F.tif'
-        f_img = pyvips.Image.new_from_file(f_file, access='random')
+        f_img = Image.open(f_file)
         return f_img
 
     def get_r(self, item):
         r_file = self.scans[item] + '_R.tif'
-        r_img = pyvips.Image.new_from_file(r_file, access='random')
+        r_img = Image.open(r_file)
         return r_img
 
     def get_prefix(self, item):
@@ -260,52 +258,39 @@ class CMCropsDataset(CMDataset):
 
 
 class NoisyCMCropsDataset(CMCropsDataset):
-    """Dataset with 512x512 CM crops with speckle noise.
+    """Dataset with 512x512 CM crops with speckle noise."""
 
-    TODO: migrate to PIL.
-    """
-
-    def __init__(self, root_dir, which, noise_args,
-                 apply_random_crop=False, crop_shape=256, return_prefix=False):
+    def __init__(self, root_dir, mode, noise_args, transform=None,
+                 return_prefix=False):
         """
 
         :param root_dir: Directory with "mosaic" directories.
-        :param which: which mode to work with (F or R).
+        :param mode: which mode to work with (F or R).
         :param noise_args: dictionary with 'random_variable' and parameter keys.
-        :param apply_random_crop: apply 256x256 random crop.
         """
-        if which == 'F':
+        if mode == 'F':
             super().__init__(
-                root_dir, only_F=True, transform_F=transforms.Lambda(lambda x: x / 255),
+                root_dir, only_F=True, transform_F=transform,
                 return_prefix=return_prefix)
-        elif which == 'R':
+        elif mode == 'R':
             super().__init__(
-                root_dir, only_R=True, transform_R=transforms.Lambda(lambda x: x / 255),
+                root_dir, only_R=True, transform_R=transform,
                 return_prefix=return_prefix)
         else:
-            raise ValueError("'which' parameter should be 'F' or 'R'")
+            raise ValueError("'mode' parameter should be 'F' or 'R'")
         self.add_noise = MultiplicativeNoise(**noise_args)
-        self.to_tensor = transforms.Compose([numpy_pyvips.Vips2Numpy(),
-                                             transforms.ToTensor()])
-        self.apply_random_crop = apply_random_crop
-        self.crop_shape = crop_shape
 
     def __getitem__(self, item):
         """Return (noisy, clean) tuple.
 
         If return_prefix, return ((noisy, clean), prefix) tuple.
+        Return (noisy, clean) otherwise.
         """
         sample = super().__getitem__(item)
         if self.return_prefix:
-            sample, prefix = sample
-        clean = sample
+            clean, prefix = sample
         noisy = self.add_noise(clean)
-        if self.apply_random_crop:
-            x = random.randint(0, self.crop_shape - 1)
-            y = random.randint(0, self.crop_shape - 1)
-            clean = clean.crop(x, y, self.crop_shape, self.crop_shape)
-            noisy = noisy.crop(x, y, self.crop_shape, self.crop_shape)
-        res = (self.to_tensor(noisy), self.to_tensor(clean))
         if self.return_prefix:
-            res = (res,) + (prefix,)
-        return res
+            return (noisy, clean), prefix
+        return noisy, clean
+
