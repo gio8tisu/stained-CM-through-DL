@@ -203,7 +203,7 @@ if __name__ == '__main__':
         args.data_directory, stain=True,
         transform_F=torchvision.transforms.Lambda(normalize if args.normalize else scale),
         transform_R=torchvision.transforms.Lambda(normalize if args.normalize else scale),
-        transform=transforms.CMNormalizer(args.normalization_method) if args.normalization_method else None
+        transform=transforms.CMMinMaxNormalizer(args.normalization_method) if args.normalization_method else None
     )
 
     G_AB = cyclegan.models.GeneratorResNet(res_blocks=9)

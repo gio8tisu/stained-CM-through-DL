@@ -37,7 +37,6 @@ class MultiplicativeNoise:
 
     def __call__(self, img):
         """return clean image and contaminated image."""
-
         noise = torch.tensor(
             self.random_variable(size=img.size(), **self.parameters),
             device=img.device, dtype=img.dtype, requires_grad=False
@@ -45,8 +44,8 @@ class MultiplicativeNoise:
         return img * noise, img
 
 
-class CMNormalizer:
-    """Normalize CM sample with different methods.
+class CMMinMaxNormalizer:
+    """Min-max normalize CM sample with different methods.
 
     Independent method "min-max" normalizes each mode separately.
     Global method "min-max" normalizes with global min and max values.

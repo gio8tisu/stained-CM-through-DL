@@ -166,10 +166,8 @@ def compute_ssim(noisy_batch, clean_batch, median_filter=False):
 
 def get_model(model_str, *args, **kwargs):
     """return nn.Module based on model_str."""
-    class_name = ''.join(
-        map(str.capitalize,
-            model_str.split('_'))
-        ) + 'Despeckle'
+    # Split by '-' character, capitalize first letter # and append 'Despeckle'.
+    class_name = ''.join(map(str.capitalize, model_str.split('_'))) + 'Despeckle'
     try:
         model_class = getattr(models, class_name)
     except AttributeError:
