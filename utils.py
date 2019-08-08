@@ -4,9 +4,6 @@ import pyvips
 import numpy_pyvips
 
 
-pyvips.cache_set_max(0)
-
-
 class TileMosaic:
     """Class for WSI inference technique by Thomas de Bel et al.
 
@@ -58,7 +55,10 @@ class TileMosaic:
             center = [(self.crop[0] - 1) / 2, (self.crop[1] - 1) / 2]  # center pixel
         Y, X = np.ogrid[:self.crop[1], :self.crop[0]]
         if window == 'pyramid':
-            w = 1 - np.maximum(np.abs(X - center[0]) / center[0], np.abs(Y - center[1]) / center[1])
+            # center and scale.
+            X = (X - center[0]) / center[0]
+            Y = (Y - center[1]) / center[1]
+            w = (1 - np.abs(X)) * (1 - np.abs(Y))
             return numpy_pyvips.Numpy2Vips.numpy2vips(w.reshape(w.shape + (1,)))
         elif window == 'circular':
             dist_from_center = np.sqrt((X - center[0]) ** 2 + (Y - center[1]) ** 2)
@@ -123,11 +123,11 @@ if __name__ == '__main__':
         print('usage: "{} tile <IMAGE_PATH>" to test TileMosaic class'.format(sys.argv[0]))
         sys.exit(1)
 
-    tile_shape = (1025, 1025)
-    center_crop = (513, 513)
-    image_padded = pad_image(image, 512)
+    tile_shape = (2**3 + 1, 2**3 + 1)
+    center_crop = (2**2 + 1, 2**2 + 1)
+    image_padded = pad_image(image, 2**3)
     start_time = time.time()
-    tile_mosaic = TileMosaic(image_padded, tile_shape, center_crop)
+    tile_mosaic = TileMosaic(image_padded, tile_shape, center_crop, window_type='pyramid')
 
     # transform by tiles and "feed" to TileMosaic object
     for y_pos in range(0, image_padded.height - tile_shape[0] - 1, tile_shape[0] // 4):
