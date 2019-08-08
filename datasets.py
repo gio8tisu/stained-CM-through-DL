@@ -14,6 +14,12 @@ from transforms import VirtualStainer, MultiplicativeNoise
 
 
 def return_prefix_decorator(getitem):
+    """Used to wrap __getitem__ method.
+
+    If return_prefix attribute is True, it will make __getitem__ return
+    the desired item along with its file prefix using _get_prefix method
+    (this can be used to identify the samples).
+    """
     def getitem_wrapper(self, item):
         sample = getitem(self, item)
         if self.return_prefix:
@@ -113,8 +119,8 @@ class CMDataset(torch.utils.data.Dataset, metaclass=ABCMeta):
 class ColonCMDataset(CMDataset):
     """CM colon scans dataset with possibility to (linearly) stain.
 
-       785: R
-       488: F
+    785: R
+    488: F
     """
 
     def __init__(self, root_dir, **kwargs):
@@ -181,8 +187,8 @@ class ColonHEDataset(torch.utils.data.Dataset):
 class SkinCMDataset(CMDataset):
     """CM skin scans dataset with possibility to (linearly) stain.
 
-       DET#1: R
-       DET#2: F
+    DET#1: R
+    DET#2: F
     """
 
     def __init__(self, root_dir, **kwargs):
