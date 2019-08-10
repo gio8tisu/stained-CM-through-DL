@@ -293,4 +293,3 @@ class NoisyCMCropsDataset(CMCropsDataset):
         if self.return_prefix:
             return (noisy, clean), prefix
         return noisy, clean
-

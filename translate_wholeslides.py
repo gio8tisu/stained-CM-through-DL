@@ -14,10 +14,11 @@ from utils import TileMosaic, pad_image
 import transforms
 
 
-pyvips.cache_set_max_mem(100)
+# pyvips.cache_set_max_mem(100)
+pyvips.voperation.cache_set_max(0)
 
 
-def main(args, dataset, G_AB, transform, numpy2vips, cuda):
+def main(args, dataset, G_AB, transform, numpy2vips):
     size = args.patch_size
     for i in range(len(dataset)):
         scan = dataset[i]
@@ -27,15 +28,7 @@ def main(args, dataset, G_AB, transform, numpy2vips, cuda):
         for x_pos in tqdm.trange(0, scan.width - size - 1, size):
             ver_image = None
             for y_pos in range(0, scan.height - size - 1, size):
-                tile_scan = scan.crop(x_pos, y_pos, size, size)  # "grab" square window/patch from image.
-                tile_scan = transform(tile_scan)  # convert to torch tensor and channels first.
-                if cuda:
-                    tile_scan = tile_scan.cuda()
-                res = G_AB(tile_scan.reshape((1,) + tile_scan.shape))  # reshape first for batch axis.
-                res_np = res.data.cpu().numpy() if cuda else res.data.numpy()  # get numpy data
-                res_np = np.moveaxis(res_np, 1, 3)  # to channels last.
-                res_np = (res_np[0] + 1) / 2  # shift pixel values to [0,1] range
-                res = numpy2vips(res_np)  # convert to pyvips.Image
+                res = transform_tile(G_AB, numpy2vips, scan, size, transform, x_pos, y_pos)
                 ver_image = res if not ver_image else ver_image.join(res, 'vertical')  # "stack" vertically
             image = ver_image if not image else image.join(ver_image, 'horizontal')  # "stack" horizontally
         if args.save_linear:
@@ -44,7 +37,7 @@ def main(args, dataset, G_AB, transform, numpy2vips, cuda):
             save(args, i, image)
 
 
-def main_fancy(args, dataset, G_AB, transform, numpy2vips, cuda):
+def main_fancy(args, dataset, G_AB, transform, numpy2vips):
     size = args.patch_size
     crop = args.crop_size if args.crop_size else size // 2 + 1
     step = args.step if args.step else crop // 2
@@ -69,16 +62,8 @@ def main_fancy(args, dataset, G_AB, transform, numpy2vips, cuda):
                                scan.height - size - 1, step):
                 if args.debug and y_count > 5:
                     break
-                tile_scan = scan.crop(x_pos, y_pos, size, size)  # "grab" square window/patch from image.
-                tile_scan = transform(tile_scan)  # convert to torch tensor and channels first.
-                if cuda:
-                    tile_scan = tile_scan.cuda()
-                res = G_AB(tile_scan.unsqueeze(0))  # reshape first for batch axis.
-                res_np = res.data.cpu().numpy() if cuda else res.data.numpy()  # get numpy data
-                res_np = np.moveaxis(res_np, 1, 3)  # to channels last.
-                res_np = (res_np[0] + 1) / 2  # shift pixel values to [0,1] range
-                res_vips = numpy2vips(res_np)  # convert to pyvips.Image
-                tiles.add_tile(res_vips, x_pos, y_pos)
+                res = transform_tile(G_AB, numpy2vips, scan, size, transform, x_pos, y_pos)
+                tiles.add_tile(res, x_pos, y_pos)
                 if args.debug:
                     y_count += 1
             if args.debug:
@@ -90,6 +75,18 @@ def main_fancy(args, dataset, G_AB, transform, numpy2vips, cuda):
             save(args, i, image)
         if args.debug:
             break
+
+
+def transform_tile(G_AB, numpy2vips, scan, size, transform, x_pos, y_pos):
+    tile_scan = scan.crop(x_pos, y_pos, size, size)  # "grab" square window/patch from image.
+    tile_scan = transform(tile_scan)  # convert to torch tensor and channels first.
+    tile_scan = tile_scan.to(device)
+    res = G_AB(tile_scan.unsqueeze(0))  # reshape first for batch axis.
+    res_np = res.detach().to('cpu').numpy()  # get data as numpy array.
+    res_np = np.moveaxis(res_np, 1, 3)  # to channels last.
+    res_np = (res_np[0] + 1) / 2  # shift pixel values to [0,1] range.
+    res_vips = numpy2vips(res_np)  # convert to pyvips.Image
+    return res_vips
 
 
 def save(args, i, transformed, linear=None):
@@ -166,6 +163,7 @@ if __name__ == '__main__':
                                      choices=[None, 'independent', 'global', 'average'])
     parser.add_argument('-v', '--verbose', action='store_true')
     parser.add_argument('--debug', action='store_true')
+    parser.add_argument('--no-cuda', action='store_true', help='do not use GPU')
 
     args = parser.parse_args()
     if args.verbose:
@@ -178,14 +176,18 @@ if __name__ == '__main__':
         os.makedirs(args.output)
 
     # check for correct --window argument.
-    if args.window not in ['rectangular', 'pyramid', 'circular']:
+    window_options = ['rectangular', 'pyramid', 'circular']
+    if args.window not in window_options:
         try:
             args.window = float(args.window)
-        except ValueError as e:
-            print(e)
+        except ValueError:
+            print("'window' option should be one of "
+                  + ' '.join(window_options) + ' or a real number.')
             exit(1)
 
-    cuda = True if torch.cuda.is_available() else False
+    cuda = torch.cuda.is_available() and not args.no_cuda
+    device = 'cuda:0' if cuda else 'cpu'
+
     numpy2vips = numpy_pyvips.Numpy2Vips()
 
     # transform to apply patch-by-patch.
@@ -209,11 +211,12 @@ if __name__ == '__main__':
     # load model parameters using dataset_name and epoch number from CLI.
     G_AB.load_state_dict(torch.load(
         os.path.join(args.models_dir, args.dataset_name, f'G_AB_{args.epoch}.pth'),
+        map_location=device
     ))
 
     G_AB.eval()  # use evaluation/validation mode.
     with torch.no_grad():  # to avoid autograd overhead.
         if args.overlap:
-            main_fancy(args, dataset, G_AB, patch_transform, numpy2vips, cuda)
+            main_fancy(args, dataset, G_AB, patch_transform, numpy2vips)
         else:
-            main(args, dataset, G_AB, patch_transform, numpy2vips, cuda)
+            main(args, dataset, G_AB, patch_transform, numpy2vips)
