@@ -1,4 +1,5 @@
 import pyvips
+import numpy as np
 import torch
 
 
@@ -14,14 +15,22 @@ class VirtualStainer:
     def __call__(self, sample_R, sample_F):
         """Apply staining transformation and return pyvips image.
 
-        :type f_instance: pyvips.Image with range [0,1]
-        :type r_instance: pyvips.Image with range [0,1]
+        :arg sample_R: pyvips.Image or numpy array with range [0,1]
+        :arg sample_F: pyvips.Image or numpy array with range [0,1]
         """
-        f_res = sample_F * self.one_minus_H
-        r_res = sample_R * self.one_minus_E
+        if (isinstance(sample_F, pyvips.Image)
+                and isinstance(sample_R, pyvips.Image)):
+            f_res = sample_F * self.one_minus_H
+            r_res = sample_R * self.one_minus_E
 
-        image = 1 - f_res - r_res
-        return image.copy(interpretation=pyvips.enums.Interpretation.RGB)
+            image = 1 - f_res - r_res
+            return image.copy(interpretation=pyvips.enums.Interpretation.RGB)
+
+        # assumes sample_F and sample_R are numpy arrays
+        f_res = sample_F * np.array(self.one_minus_H).reshape((3, 1, 1))
+        r_res = sample_R * np.array(self.one_minus_E).reshape((3, 1, 1))
+
+        return 1 - f_res - r_res
 
 
 class MultiplicativeNoise:
