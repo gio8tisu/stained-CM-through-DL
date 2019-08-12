@@ -1,4 +1,8 @@
 .DS_STORE
 .idea
 *__pycache__
+*.orig
 venv
+*.jpg
+
+data

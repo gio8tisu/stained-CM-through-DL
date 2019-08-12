@@ -6,12 +6,6 @@ import tqdm
 import datasets
 
 
-'''
-DET#1: F
-DET#2: R
-'''
-
-
 def main(dataset):
     size = args.patch_size
     for i in range(len(dataset)):
