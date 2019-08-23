@@ -22,9 +22,9 @@ pyvips.voperation.cache_set_max_files(10)
 def main(args, dataset, G_AB, transform, numpy2vips):
     size = args.patch_size
     for i in range(len(dataset)):
-        scan = dataset[i]
+        scan, prefix = dataset[i]
         if args.verbose:
-            print('Transforming image {} of {}'.format(i + 1, len(dataset)))
+            print('Transforming image {} of {} ({})'.format(i + 1, len(dataset), prefix))
         image = None
         for x_pos in tqdm.trange(0, scan.width - size - 1, size):
             ver_image = None
@@ -43,10 +43,9 @@ def main_fancy(args, dataset, G_AB, transform, numpy2vips):
     crop = args.crop_size if args.crop_size else size // 2 + 1
     step = args.step if args.step else crop // 2
     for i in range(len(dataset)):
-        scan = dataset[i]
-
+        scan, prefix = dataset[i]
         if args.verbose:
-            print('Transforming image {} of {}'.format(i + 1, len(dataset)))
+            print('Transforming image {} of {} ({})'.format(i + 1, len(dataset), prefix))
 
         tiles = TileMosaic(scan, size, crop,
                            0.25 if args.window == 'rectangular' else args.window)
@@ -205,7 +204,8 @@ if __name__ == '__main__':
         args.data_directory, stain=True,
         transform_F=torchvision.transforms.Lambda(normalize if args.normalize else scale),
         transform_R=torchvision.transforms.Lambda(normalize if args.normalize else scale),
-        transform=transforms.CMMinMaxNormalizer(args.normalization_method) if args.normalization_method else None
+        transform=transforms.CMMinMaxNormalizer(args.normalization_method) if args.normalization_method else None,
+        return_prefix=True
     )
 
     G_AB = cyclegan.models.GeneratorResNet(res_blocks=9)
