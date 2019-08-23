@@ -14,8 +14,9 @@ from utils import TileMosaic, pad_image
 import transforms
 
 
-# pyvips.cache_set_max_mem(100)
-pyvips.voperation.cache_set_max(0)
+pyvips.voperation.cache_set_max_mem(100)
+pyvips.voperation.cache_set_max_files(10)
+# pyvips.voperation.cache_set_max(0)
 
 
 def main(args, dataset, G_AB, transform, numpy2vips):
@@ -95,6 +96,7 @@ def save(args, i, transformed, linear=None):
     if args.verbose:
         print('Saving transformed image to ' + output_file)
     if args.compression:
+        # transformed.tiffsave(output_file, tile=True, pyramid=True, compression='deflate', Q=90)
         transformed.tiffsave(output_file, tile=True, pyramid=True, compression='jpeg', Q=90)
     else:
         transformed.write_to_file(output_file)
@@ -104,6 +106,7 @@ def save(args, i, transformed, linear=None):
         if args.verbose:
             print('Saving linear transform image to ' + output_file)
         if args.compression:
+            # linear.tiffsave(output_file, tile=True, pyramid=True, compression='deflate', Q=90)
             linear.tiffsave(output_file, tile=True, pyramid=True, compression='jpeg', Q=90)
         else:
             linear.write_to_file(output_file)

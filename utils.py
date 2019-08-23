@@ -1,3 +1,6 @@
+import os
+import tempfile
+
 import numpy as np
 import pyvips
 
@@ -41,9 +44,11 @@ class TileMosaic:
         if self.crop[0] > self.tile_shape[0] or self.crop[1] > self.tile_shape[1]:
             raise ValueError('center_crop dimensions should be smaller than tile_shape')
 
-        self.result = None
-
         self.weights = self._define_weight_matrix(window=window_type)
+
+        self.file_names = []
+        self.tmp_dir = tempfile.TemporaryDirectory(suffix='translate_wholeslide', dir=os.getenv('TMPDIR', None))
+        # self.tmp_dir = os.getenv('TMPDIR', '/tmp')  # Try to get TMPDIR environment variable, fallback to /tmp
 
     def _define_weight_matrix(self, window='pyramid', center=None):
         """Return a pyvips.Image with weight values."""
@@ -85,8 +90,9 @@ class TileMosaic:
                              tile.height // 2 - self.crop[0] // 2,
                              *self.crop)
         tile *= self.weights
-        tile_in_bg = self.background.copy().insert(tile, x_pos, y_pos)
-        self.result = self.result + tile_in_bg if self.result else tile_in_bg
+        self.file_names.append(os.path.join(self.tmp_dir.name, f'{x_pos}-{y_pos}.v'))
+        # self.file_names.append(os.path.join(self.tmp_dir, f'{x_pos}-{y_pos}.v'))
+        tile.write_to_file(self.file_names[-1])
         # TODO try this:
         # in __init__:
         # self.result = pyvips.Image.black(original.width, original.height, bands=original.bands)
@@ -96,7 +102,17 @@ class TileMosaic:
 
     def get_mosaic(self):
         """return mosaic from tiles."""
-        return self.result
+        result = self.background.copy()
+        for file in self.file_names:
+            crop = pyvips.Image.new_from_file(file)
+            # remove extension and split.
+            x, y = os.path.basename(file[:-2]).split('-')
+            result += self.background.insert(crop, int(x), int(y))
+            # Remove file to clean temporary directory.
+            # os.remove(file)
+
+        # self.tmp_dir.cleanup()
+        return result
 
 
 def pad_image(image, padding):
