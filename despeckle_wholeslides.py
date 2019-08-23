@@ -42,7 +42,7 @@ if __name__ == '__main__':
     import argparse
     import tqdm
 
-    parser = argparse.ArgumentParser(description='Transform CM whole-slides to H&E.',
+    parser = argparse.ArgumentParser(description='Despeckle R mode of CM dataset.',
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('directory', type=str, help='directory with mosaic* directories')
     parser.add_argument('-o', '--output', required=True, help='output directory')
