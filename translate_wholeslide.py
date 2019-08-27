@@ -57,6 +57,9 @@ def main(args):
 
     tiles = TileMosaic(scan, size, crop,
                        0.25 if args.window == 'rectangular' else args.window)
+    if args.verbose:
+        print('Using {} as temporary directory'.format(tiles.tmp_dir.name))
+
     scan = pad_image(scan, size // 2)
 
     for x_pos in tqdm.trange(0, scan.width - size - 1, step):
