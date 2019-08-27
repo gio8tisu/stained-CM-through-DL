@@ -48,7 +48,6 @@ class TileMosaic:
 
         self.file_names = []
         self.tmp_dir = tempfile.TemporaryDirectory(suffix='translate_wholeslide', dir=os.getenv('TMPDIR', None))
-        # self.tmp_dir = os.getenv('TMPDIR', '/tmp')  # Try to get TMPDIR environment variable, fallback to /tmp
 
     def _define_weight_matrix(self, window='pyramid', center=None):
         """Return a pyvips.Image with weight values."""
@@ -108,10 +107,7 @@ class TileMosaic:
             # remove extension and split.
             x, y = os.path.basename(file[:-2]).split('-')
             result += self.background.insert(crop, int(x), int(y))
-            # Remove file to clean temporary directory.
-            # os.remove(file)
 
-        # self.tmp_dir.cleanup()
         return result
 
 
