@@ -55,7 +55,7 @@ def main(args):
     crop = args.crop_size if args.crop_size else size // 2 + 1
     step = args.step if args.step else crop // 2
 
-    tiles = TileMosaic(scan, size, crop,
+    tiles = TileMosaic(scan, not args.no_pyvips_tiles, size, crop,
                        0.25 if args.window == 'rectangular' else args.window)
     if args.verbose:
         print('Using {} as temporary directory'.format(tiles.tmp_dir.name))
@@ -64,7 +64,7 @@ def main(args):
 
     for x_pos in tqdm.trange(0, scan.width - size - 1, step):
         for y_pos in range(0, scan.height - size - 1, step):
-            res = transform_tile(G_AB, numpy2vips, scan, size, transform, x_pos, y_pos, device)
+            res = transform_tile(G_AB, scan, size, transform, x_pos, y_pos, device)
             tiles.add_tile(res, x_pos, y_pos)
     transformed = tiles.get_mosaic()
 

@@ -3,6 +3,7 @@ import tempfile
 
 import numpy as np
 import pyvips
+import imageio
 
 import numpy_pyvips
 
@@ -20,13 +21,15 @@ class TileMosaic:
         num_w (int) - number of "horizontal" tiles.
     """
 
-    def __init__(self, original,
+    def __init__(self, original, pyvips_tiles=True,
                  tile_shape=(2048, 2048), center_crop=None, window_type=0.25):
         """Constructor.
 
         :param original: original image, padded by tile_shape / 2.
         :type original: pyvips.Image
         """
+        self.pyvips_tiles = pyvips_tiles
+
         if isinstance(tile_shape, int):
             self.tile_shape = (tile_shape,) * 2
         else:
@@ -63,15 +66,18 @@ class TileMosaic:
             X = (X - center[0]) / center[0]
             Y = (Y - center[1]) / center[1]
             w = (1 - np.abs(X)) * (1 - np.abs(Y))
-            return numpy_pyvips.Numpy2Vips.numpy2vips(w.reshape(w.shape + (1,)))
         elif window == 'circular':
             dist_from_center = np.sqrt((X - center[0]) ** 2 + (Y - center[1]) ** 2)
             dist_from_center /= np.max(dist_from_center)
             w = 1 - dist_from_center
-            return numpy_pyvips.Numpy2Vips.numpy2vips(w.reshape(w.shape + (1,)))
         else:
             raise NotImplementedError("'window' parameter should be a scalar, "
-                                      "'pyramid' or 'circular")
+                                      "'pyramid' or 'circular'")
+        w = w.reshape(w.shape + (1,))
+        if self.pyvips_tiles:
+            return numpy_pyvips.Numpy2Vips.numpy2vips(w)
+        else:
+            return w
 
     def add_tile(self, tile, x_pos, y_pos):
         """Add tile to build mosaic.
@@ -81,17 +87,25 @@ class TileMosaic:
         :param y_pos: y position of upper-left corner.
         """
 
-        if (tile.height, tile.width) != self.tile_shape:
-            raise ValueError('Tile is not the correct shape.')
+        # if (tile.height, tile.width) != self.tile_shape:
+        #     raise ValueError('Tile is not the correct shape.')
+
         # crop borders if necessary.
         if self.crop != self.tile_shape:
-            tile = tile.crop(tile.width // 2 - self.crop[1] // 2,
-                             tile.height // 2 - self.crop[0] // 2,
-                             *self.crop)
+            if self.pyvips_tiles:
+                tile = tile.crop(tile.width // 2 - self.crop[1] // 2,
+                                 tile.height // 2 - self.crop[0] // 2,
+                                 *self.crop)
+            else:
+                tile = tile[tile.shape[0] // 2 - self.crop[0] // 2:(tile.shape[0] // 2 - self.crop[0] // 2 + self.crop[0]),
+                            tile.shape[1] // 2 - self.crop[1] // 2:(tile.shape[1] // 2 - self.crop[1] // 2 + self.crop[1])]
         tile *= self.weights
-        self.file_names.append(os.path.join(self.tmp_dir.name, f'{x_pos}-{y_pos}.v'))
-        # self.file_names.append(os.path.join(self.tmp_dir, f'{x_pos}-{y_pos}.v'))
-        tile.write_to_file(self.file_names[-1])
+        if self.pyvips_tiles:
+            self.file_names.append(os.path.join(self.tmp_dir.name, f'{x_pos}-{y_pos}.v'))
+            tile.write_to_file(self.file_names[-1])
+        else:
+            self.file_names.append(os.path.join(self.tmp_dir.name, f'{x_pos}-{y_pos}.tif'))
+            imageio.imwrite(self.file_names[-1], tile)
         # TODO try this:
         # in __init__:
         # self.result = pyvips.Image.black(original.width, original.height, bands=original.bands)
@@ -105,7 +119,7 @@ class TileMosaic:
         for file in self.file_names:
             crop = pyvips.Image.new_from_file(file)
             # remove extension and split.
-            x, y = os.path.basename(file[:-2]).split('-')
+            x, y = os.path.basename(file.split('.')[0]).split('-')
             result += self.background.insert(crop, int(x), int(y))
 
         return result
@@ -139,7 +153,7 @@ if __name__ == '__main__':
     center_crop = (2**2 + 1, 2**2 + 1)
     image_padded = pad_image(image, 2**3)
     start_time = time.time()
-    tile_mosaic = TileMosaic(image_padded, tile_shape, center_crop, window_type='pyramid')
+    tile_mosaic = TileMosaic(image, False, tile_shape, center_crop, window_type='pyramid')
 
     # transform by tiles and "feed" to TileMosaic object
     for y_pos in range(0, image_padded.height - tile_shape[0] - 1, tile_shape[0] // 4):
