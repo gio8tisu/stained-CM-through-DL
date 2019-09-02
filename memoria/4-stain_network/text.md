@@ -1,0 +1,3 @@
+# Stain Network
+
+## Proposed architecture
