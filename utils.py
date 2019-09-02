@@ -106,12 +106,6 @@ class TileMosaic:
         else:
             self.file_names.append(os.path.join(self.tmp_dir.name, f'{x_pos}-{y_pos}.tif'))
             imageio.imwrite(self.file_names[-1], tile)
-        # TODO try this:
-        # in __init__:
-        # self.result = pyvips.Image.black(original.width, original.height, bands=original.bands)
-        #                           .copy(interpretation=pyvips.enums.Interpretation.RGB)
-        # in add_tile:
-        # self.result.draw_image(tile, x_pos, y_pos, mode=pyvips.enums.Combine.SUM)
 
     def get_mosaic(self):
         """return mosaic from tiles."""
