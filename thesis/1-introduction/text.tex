@@ -1,8 +1,8 @@
-\hypertarget{introduction}{%
-\section{Introduction}\label{introduction}}
+\documentclass[../main.tex]{subfiles}
+\begin{document}
 
-\hypertarget{project-background}{%
-\subsection{Project Background}\label{project-background}}
+\subsection{Project Background}
+\label{sec:project-background}
 
 In recent years, deep learning (DL) has significantly improved the
 performance of computer vision systems in image classification, object
@@ -12,7 +12,7 @@ and image-to-image translation. Image-to-image translation is the
 problem where we have a source image and we want to generate an image
 based on the source but with different characteristics.
 
-The project is a continuation of a work \ref{Combalia2019} where the idea of
+The project is a continuation of a work \cite{Combalia2019} where the idea of
 image-to-image translation is applied to medical imaging, specifically
 to generation of histological images with the appearance of H\&E stained
 slides using a confocal microscopy (CM) as the source.
@@ -39,3 +39,6 @@ network sometimes produces undesired artifacts and de stain generative
 network can create or eliminate structures on the output image. This
 project will focus on understanding why this happens and will try to
 solve this problems.
+
+\printbibliography
+\end{document}

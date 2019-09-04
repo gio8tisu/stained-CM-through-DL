@@ -1,0 +1,99 @@
+\documentclass[a4paper,12pt,titlepage,twoside]{article}
+\usepackage[english]{babel}
+\usepackage[utf8]{inputenc}
+
+\usepackage{graphicx}
+\graphicspath{{images/}{../images/}}
+
+\usepackage{biblatex}
+\addbibresource{refs.bib}
+
+\usepackage{csquotes}
+
+\usepackage{float}
+\usepackage{verbatim}
+\usepackage{amsmath}
+\usepackage{fancyhdr}
+\usepackage{titlesec}
+
+\usepackage{subfiles}
+
+\usepackage{blindtext}
+\usepackage{lipsum}
+
+%% Page formatting
+\setlength{\parskip}{4mm}
+\setlength{\footskip}{60pt}
+\setlength{\headheight}{15pt}
+\usepackage[a4paper,top=3cm, bottom=3.2cm, inner=3cm, outer=2cm, footnotesep=1cm, heightrounded]{geometry}
+
+%% Strart new page for each section iff there is something written in the last one.
+\newcommand{\sectionbreak}{\cleardoublepage}
+
+%% Page header and footer (E/O (even/odd), L/C/R (left/center/right) and H/F (header/footer))
+\fancyhf{}
+%\fancyhead[ER]{Degree thesis}
+\fancyhead[ER]{\rightmark}
+\fancyhead[OL]{Data-driven CM to H\&E transformation}
+\fancyhf[ELH, ORH]{\thepage}
+%\fancyfoot[C]{}
+\fancyfoot[EL, OR]{
+\includegraphics[scale=0.1]{logo_telecos_2018.png}}
+\pagestyle{fancy}
+\raggedbottom
+
+%% \SetWatermarkText{\hspace{9mm}\transparent{0.15}\includegraphics[scale=2.5]{logo_telecos_2018}}
+%% \SetWatermarkAngle{0}
+%% \SetWatermarkLightness{1}
+
+
+%% \title{Data-driven CM to H\&E transformation}
+%% \author{Sergio Garcia Campderrich}
+%% \date{October 2019}
+
+\begin{document}
+
+%% \maketitle
+\begin{titlepage}
+  \centering
+   \includegraphics[height=0.05\textheight]{logo_barcelonatech}\hspace{0.5cm}
+   \includegraphics[height=0.05\textheight]{logo_telecos_2018}\par\vspace{1cm}
+  {\scshape\LARGE Escola Tècnica Superior \\ d'Enginyeria de Telecomunicació de Barcelona \par}
+  \vspace{3mm}
+  {\huge\bfseries Data-driven CM to H\&E transformation\par}
+  \vspace{2cm}
+  by\par
+  {\Large\itshape Sergio García Campderrich\par}
+  In partial fulfilment of the requirements for the degree in Telecommunications Technologies and Services Engineering
+  \vfill
+  supervised by\par
+  Verónica Vilaplana
+
+  \vfill
+
+  {\large \today\par}
+\end{titlepage}
+
+\clearpage
+\thispagestyle{empty}
+\null\newpage
+\pagenumbering{arabic}
+
+\section{Introduction}
+\subfile{1-introduction/text}
+
+\section{State of the art}
+\subfile{2-state_of_the_art/text}
+
+\section{Methodology}
+\subfile{3-methodology/text}
+
+\section{Experiments and results}
+\subfile{4-experiments_and_results/text}
+
+\section{Conclusions and future development}
+\subfile{5-conclusions_and_future_development/text}
+
+\printbibheading
+\printbibliography
+\end{document}
