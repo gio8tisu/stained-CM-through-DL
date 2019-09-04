@@ -1,0 +1,51 @@
+\ProvidesPackage{example}
+
+\usepackage[english]{babel}
+\usepackage[utf8]{inputenc}
+
+\usepackage{graphicx}
+\graphicspath{{images/}{../images/}}
+
+\usepackage{biblatex}
+\addbibresource{refs.bib}
+
+\usepackage{csquotes}
+
+\usepackage{float}
+\usepackage{verbatim}
+\usepackage{amsmath}
+\usepackage{fancyhdr}
+\usepackage{titlesec}
+
+\usepackage{subfiles}
+
+\usepackage{blindtext}
+\usepackage{lipsum}
+
+%% Page formatting
+\setlength{\parskip}{4mm}
+\setlength{\footskip}{60pt}
+\setlength{\headheight}{15pt}
+\usepackage[a4paper,top=3cm, bottom=3.2cm, inner=3cm, outer=2cm, footnotesep=1cm, heightrounded]{geometry}
+
+%% Strart new page for each section iff there is something written in the last one.
+\newcommand{\sectionbreak}{\cleardoublepage}
+
+%% Page header and footer (E/O (even/odd), L/C/R (left/center/right) and H/F (header/footer))
+\fancyhf{}
+%\fancyhead[ER]{Degree thesis}
+\fancyhead[ER]{\rightmark}
+\fancyhead[OL]{Data-driven CM to H\&E transformation}
+\fancyhf[ELH, ORH]{\thepage}
+%\fancyfoot[C]{}
+\fancyfoot[EL, OR]{
+\includegraphics[scale=0.1]{logo_telecos_2018}}
+\pagestyle{fancy}
+\raggedbottom
+
+%% \SetWatermarkText{\hspace{9mm}\transparent{0.15}\includegraphics[scale=2.5]{logo_telecos_2018}}
+%% \SetWatermarkAngle{0}
+%% \SetWatermarkLightness{1}
+
+
+
