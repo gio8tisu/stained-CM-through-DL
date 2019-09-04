@@ -1,38 +1,42 @@
 \documentclass[a4paper,12pt,titlepage]{article}
-%% \documentclass[a4paper,12pt,titlepage,twoside]{article}
-\usepackage{style}
+%% For two-sided document use: \documentclass[a4paper,12pt,titlepage,twoside]{article}
 
-%% \title{Data-driven CM to H\&E transformation}
-%% \author{Sergio Garcia Campderrich}
-%% \date{October 2019}
+% Pramble defined in style.sty
+\usepackage{preamble}
+
+\addbibresource{refs.bib}
+\graphicspath{{images/}{../images/}}
 
 \begin{document}
 
-%% \maketitle
 \begin{titlepage}
-  \centering
-   \includegraphics[height=0.05\textheight]{logo_barcelonatech}\hspace{0.5cm}
-   \includegraphics[height=0.05\textheight]{logo_telecos_2018}\par\vspace{1cm}
-  {\scshape\LARGE Escola Tècnica Superior \\ d'Enginyeria de Telecomunicació de Barcelona \par}
-  \vspace{3mm}
-  {\huge\bfseries Data-driven CM to H\&E transformation\par}
-  \vspace{2cm}
-  by\par
-  {\Large\itshape Sergio García Campderrich\par}
-  In partial fulfilment of the requirements for the degree in Telecommunications Technologies and Services Engineering
-  \vfill
-  supervised by\par
-  Verónica Vilaplana
+\centering
 
-  \vfill
+\includegraphics[height=0.07\textheight]{logo_barcelonatech}\hspace{0.5cm}
+\includegraphics[height=0.07\textheight]{logo_telecos_2018}\par\vspace{1cm}
 
-  {\large \today\par}
+{\scshape\LARGE Escola Tècnica Superior \\ d'Enginyeria de Telecomunicació de Barcelona \par}\vspace{3mm}
+
+{\huge\bfseries Data-driven CM to H\&E transformation\par}\vspace{2cm}
+
+by\par
+{\Large\itshape Sergio García Campderrich\par}
+In partial fulfilment of the requirements for the degree in Telecommunications Technologies and Services Engineering\vfill
+
+supervised by\par
+Verónica Vilaplana
+
+\vfill
+
+{\large \today\par}
 \end{titlepage}
 
 \clearpage
 \thispagestyle{empty}
 \null\newpage
 \pagenumbering{arabic}
+
+Hola \cite{Combalia2019}
 
 \section{Introduction}
 \subfile{1-introduction/text}
