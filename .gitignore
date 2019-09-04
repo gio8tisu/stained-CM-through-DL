@@ -4,5 +4,8 @@
 *.orig
 venv
 *.jpg
+*.pdf
+*.log
+*.aux
 
 data
