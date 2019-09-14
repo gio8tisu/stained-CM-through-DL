@@ -1,6 +1,8 @@
 # Introduction
 
-## Project Background
+## Context
+
+## Problem statement
 In recent years, deep learning (DL) has significantly improved the performance of computer
 vision systems in image classification, object detection and segmentation tasks.  Generative adversarial networks (GAN) in particular have revolutionized generative tasks like image synthesis
 and image-to-image translation.
@@ -20,11 +22,8 @@ The initial chosen architectures are: a CNN with a multiplicative residual conne
 The current model has room for improvements: the despeckling neural network sometimes produces undesired artifacts and de stain generative network can create or eliminate structures on the output image.
 This project will focus on understanding why this happens and will try to solve this problems.
 
-## Need
+## Requirements and specifiations
 
-## Problem specification
-Image-to-image translation
+## Methods and procedures
 
-## Techniques
-
-## Work Structure
+## Document Structure
