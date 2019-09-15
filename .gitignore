@@ -4,11 +4,14 @@
 *.orig
 venv
 *.jpg
-*.pdf
 *.log
 *.aux
 *.swp
 
 data
+main.lof
+main.lot
 main.bcf
+main.out
+main.toc
 main.run.xml
