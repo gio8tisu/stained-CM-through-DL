@@ -5,7 +5,11 @@
 
 \usepackage{graphicx}
 
-\usepackage{biblatex}
+\usepackage[
+backend=biber,
+style=alphabetic,
+citestyle=authoryear
+]{biblatex}\addbibresource{refs.bib}
 \usepackage{url}
 \usepackage{hyperref}
 \hypersetup{
@@ -17,6 +21,9 @@
 }
 
 \usepackage{csquotes}
+\usepackage[acronym,nomain,nonumberlist]{glossaries}
+\loadglsentries{acronyms.tex}
+\makeglossaries
 
 \usepackage{float}
 \usepackage{verbatim}
