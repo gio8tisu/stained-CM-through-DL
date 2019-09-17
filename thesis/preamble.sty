@@ -1,13 +1,15 @@
-\ProvidesPackage{example}
+\ProvidesPackage{preamble}
 
 \usepackage[english]{babel}
 \usepackage[utf8]{inputenc}
 
 \usepackage{graphicx}
+\usepackage{caption}
+\usepackage{subcaption}
 
 \usepackage[
 backend=biber,
-style=alphabetic,
+style=authoryear,
 citestyle=authoryear
 ]{biblatex}\addbibresource{refs.bib}
 \usepackage{url}

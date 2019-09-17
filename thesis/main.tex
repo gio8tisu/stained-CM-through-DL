@@ -4,7 +4,6 @@
 % Pramble defined in style.sty
 \usepackage{preamble}
 
-\addbibresource{refs.bib}
 \graphicspath{{images/}{../images/}}
 
 \begin{document}
@@ -80,20 +79,27 @@ Position & Project author & Position & Project supervisior \\
 
 \thispagestyle{empty}
 
+%% Table of contents page
 \tableofcontents
 \thispagestyle{empty}
 
+%% List of figures page
 \listoffigures
 \thispagestyle{empty}
 
+%% List of tables page
 \listoftables
 \thispagestyle{empty}
 
-\newpage
+%% List of acronyms page
+\printglossary[type=\acronymtype,title=Acronyms]
+\thispagestyle{empty}
 
+%% Begining
+\newpage
 \pagenumbering{arabic}
 
-Hola \cite{Combalia2019}
+Hola \cite{Combalia2019} \gls{dl}.
 
 \section{Introduction}
 \subfile{1-introduction/text}
@@ -110,6 +116,5 @@ Hola \cite{Combalia2019}
 \section{Conclusions and future development}
 \subfile{5-conclusions_and_future_development/text}
 
-\printbibheading
 \printbibliography
 \end{document}
