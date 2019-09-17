@@ -1,7 +1,9 @@
 SHELL=/bin/bash
 PREFIX=main
 
-$(PREFIX).pdf : $(PREFIX).acn $(PREFIX).acr $(PREFIX).alg $(PREFIX).aux $(PREFIX).bcf $(PREFIX).bbl $(PREFIX).blg $(PREFIX).ist $(PREFIX).lof $(PREFIX).log $(PREFIX).lot $(PREFIX).out $(PREFIX).run.xml $(PREFIX).toc $(PREFIX).tex
+
+.PHONY: all
+all : $(PREFIX).acn $(PREFIX).acr $(PREFIX).alg $(PREFIX).aux $(PREFIX).bcf $(PREFIX).bbl $(PREFIX).blg $(PREFIX).ist $(PREFIX).lof $(PREFIX).log $(PREFIX).lot $(PREFIX).out $(PREFIX).run.xml $(PREFIX).toc $(PREFIX).tex */*.tex
 	pdflatex $(PREFIX)
 
 $(PREFIX).acn $(PREFIX).aux $(PREFIX).bcf $(PREFIX).ist $(PREFIX).lof $(PREFIX).log $(PREFIX).lot $(PREFIX).out $(PREFIX).run.xml $(PREFIX).toc : $(PREFIX).tex
