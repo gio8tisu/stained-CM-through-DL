@@ -3,10 +3,37 @@
 
 \lipsum[1]
 
-\subsection{Atificial Neural Networks}
-\label{sec:atificial-neural-networks}
+\subsection{Artificial Neural Networks}
+\label{sec:artificial-neural-networks}
 
-\lipsum[2]
+\gls{ann} were originally developed as a mathematical model of the biological brain
+(\cite{McCulloch1943,Rosenblatt58theperceptron,Rumelhart1987}).
+Although \gls{ann} have little resemblance to real biological neurons, they are
+a powerful \gls{ml} tool and one of the most popular research topics in the last years.
+Nowadays, most researchers have shifted from the prespective of the biological
+neuron model to a more general \emph{function approximator} point of view, as it was
+proved that \gls{ann} with enough capacity are capable of approximating any measurable
+function to any desired degree of accuracy (\cite{Cybenko1989,Hornik1991251}).
+
+% The basic structure of an ANN is a network of small processing units, or
+% nodes, joined to each other by weighted connections. In terms of the original
+% biological model, the nodes represent neurons, and the connection weights
+% represent the strength of the synapses between the neurons. The network is
+% activated by providing an input to some or all of the nodes, and this activation
+% then spreads throughout the network along the weighted connections. The electrical
+% activity of biological neurons typically follows a series of sharp `spikes',
+% and the activation of an ANN node was originally intended to model the average
+% ring rate of these spikes.
+% Many varieties of ANNs have appeared over the years, with widely varying
+% properties. One important distinction is between ANNs whose connections form
+% cycles, and those whose connections are acyclic. ANNs with cycles are referred
+% to as feedback, recursive, or recurrent, neural networks, and are dealt with in
+% Section 3.2. ANNs without cycles are referred to as feedforward neural networks
+% (FNNs). Well known examples of FNNs include perceptrons (Rosenblatt, 1958),
+% radial basis function networks (Broomhead and Lowe, 1988), Kohonen maps
+% (Kohonen, 1989) and Hopeld nets (Hopeld, 1982). The most widely used form
+% of FNN, and the one we focus on in this section, is the multilayer perceptron
+% (MLP; Rumelhart et al., 1986; Werbos, 1988; Bishop, 1995).
 
 \subsubsection{Perceptron}
 
@@ -37,5 +64,4 @@
   \item CycleGANs
 \end{itemize}
 
-\printbibliography
 \end{document}

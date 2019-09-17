@@ -1,4 +1,4 @@
-# Atificial Neural Networks
+# Artificial Neural Networks
 
 ## Perceptron
 
