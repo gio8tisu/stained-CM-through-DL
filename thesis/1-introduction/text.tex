@@ -5,12 +5,12 @@
 \label{sec:project-background}
 
 In recent years, \gls{dl} has significantly improved the
-performance of a wida range of computer vision tasks like image classification,
-object detection or segmentation tasks.
+performance of a wide range of computer vision tasks like image classification,
+object detection or semantic segmentation.
 \gls{gans} in particular have revolutionized generative tasks like image synthesis
-and image-to-image translation. Image-to-image translation is the
-problem where we have a source image and we want to generate an image
-based on the source but with different characteristics.
+and image-to-image translation.
+Image-to-image translation is the task of generating an image based on a
+given source image with different characteristics depending on the specific problem.
 
 In this work, the idea of image-to-image translation is applied
 to the transformation of \gls{cm} histological images into \gls{he} appearance.
@@ -122,21 +122,21 @@ the color scheme differs from an actual \gls{he} sample.
 In contrast to \cite{Gareau2009} work where the parameters
 ($\tensor{H}$ and $\tensor{E}$) are found experimentally, a data-driven approach
 of the problem will be taken where the parameters of the mapping function
-\ref{eq:mapping-function} are found based on data.
+\ref{eq:mapping-function} are \emph{learned} based on data.
 More specifically, the transformation will be defined by a \gls{nn} and the parameters
 will be searched through an adversarial setting.
 
-\tikzstyle{block} = [draw,fill=blue!20,minimum size=2em]
-
-\begin{tikzpicture}[>=latex']
-
-	\node (input) at (0,-1) {\includegraphics[width=.2\textwidth]{R_crop_thumbnail}};
-	\node[block] (cnn) at (4,-1) {CNN};
-	\draw[->] (input.east) -- (cnn);
-	\node (output) at (8,-1) {\includegraphics[width=.2\textwidth]{HE}};
-	\draw[->] (cnn.east) -- (output);
-
-\end{tikzpicture}
+% \tikzstyle{block} = [draw,fill=blue!20,minimum size=2em]
+% 
+% \begin{tikzpicture}[>=latex']
+% 
+	% \node (input) at (0,-1) {\includegraphics[width=.2\textwidth]{R_crop_thumbnail}};
+	% \node[block] (cnn) at (4,-1) {CNN};
+	% \draw[->] (input.east) -- (cnn);
+	% \node (output) at (8,-1) {\includegraphics[width=.2\textwidth]{HE}};
+	% \draw[->] (cnn.east) -- (output);
+% 
+% \end{tikzpicture}
 
 % The initial chosen architectures are: a \gls{cnn} with a multiplicative
 % residual connection to reduce the noise and then a \gls{cyclegan} to combine
