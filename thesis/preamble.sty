@@ -4,6 +4,10 @@
 \usepackage[utf8]{inputenc}
 
 \usepackage{graphicx}
+\usepackage{tikz}
+\usetikzlibrary{arrows}
+\usepackage{xcolor}
+
 \usepackage{caption}
 \usepackage{subcaption}
 
@@ -30,6 +34,7 @@ citestyle=authoryear
 \usepackage{float}
 \usepackage{verbatim}
 \usepackage{amsmath}
+\usepackage{amssymb}
 \usepackage{array}
 \usepackage{booktabs}
 \usepackage{fancyhdr}
@@ -69,4 +74,6 @@ citestyle=authoryear
 
 %% Custom commands
 \newcommand{\cycleGAN}[2]{G_{#1 \rightarrow #2}}
-
+\makeatletter
+\newcommand{\tensor}[1]{\mathbf{#1}}
+\newcommand{\R}{\mathbb{R}}

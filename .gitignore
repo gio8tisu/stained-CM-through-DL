@@ -5,13 +5,20 @@
 venv
 *.jpg
 *.log
-*.aux
 *.swp
 
 data
-main.lof
-main.lot
-main.bcf
-main.out
-main.toc
-main.run.xml
+main.aux
+*.acn
+*.acr
+*.alg
+*.aux
+*.bbl
+*.bcf
+*.blg
+*.ist
+*.lof
+*.lot
+*.out
+*.run.xml
+*.toc

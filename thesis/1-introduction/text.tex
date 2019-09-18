@@ -5,8 +5,8 @@
 \label{sec:project-background}
 
 In recent years, \gls{dl} has significantly improved the
-performance of computer vision systems in image classification, object
-detection and segmentation tasks.
+performance of a wida range of computer vision tasks like image classification,
+object detection or segmentation tasks.
 \gls{gans} in particular have revolutionized generative tasks like image synthesis
 and image-to-image translation. Image-to-image translation is the
 problem where we have a source image and we want to generate an image
@@ -16,6 +16,13 @@ In this work, the idea of image-to-image translation is applied
 to the transformation of \gls{cm} histological images into \gls{he} appearance.
 
 \subsubsection{Confocal microscopy}
+\gls{cm} is an optical imaging technique for increasing optical resolution
+and contrast of a micrograph by means of using a spatial pinhole to block
+out-of-focus light in image formation. With it, technician are able to slice
+thin sections out of thick fluorescent specimens, view specimens
+in planes tilted to the line of sight, penetrate deep into light-scattering
+tissues, obtain 3D views at very high resolution... (\cite{Inoue2006})
+
 Ex vivo\footnote{Ex vivo means that which takes place outside an organism.
 In science, ex vivo refers to experimentation or measurements done in or on
 tissue from an organism in an external environment with minimal alteration
@@ -26,20 +33,9 @@ squamous cell carcinomas (SCCs), the two most common types of skin cancer.
 The procedure is done in stages, including lab work, while the patient waits.
 This allows the removal of all cancerous cells for the highest cure rate
 while sparing healthy tissue and leaving the smallest possible scar.}
-in rapidly detecting carcinomas without conventional frozen histopathology.
+by rapidly detecting carcinomas without conventional frozen histopathology.
+(\cite{Chung2005})
 
-\gls{cm} has enabled rapid evaluation of tissue samples
-directly in the surgery room significantly reducing the time of complex
-surgical operations in skin cancer (\cite{Cinotti2018}),
-but the output largely differs from the standard \gls{he} slides that
-pathologists typically use to analyze tissue samples.
-
-\gls{cm} is an optical imaging technique for increasing optical resolution
-and contrast of a micrograph by means of using a spatial pinhole to block
-out-of-focus light in image formation. With it, technician are able to slice
-thin optical sections out of thick fluorescent specimens, view specimens
-in planes tilted to the line of sight, penetrate deep into light-scattering
-tissues, obtain 3D views at very high resolution... (\cite{Inoue2006})
 Two different \gls{cm} modes exist, \gls{rcm} displays the backscattering signal
 of naturally occurring skin components, whereas \gls{fcm} provides contrast
 by using an applied fluorescent dye (\cite{Skvara2012}).
@@ -57,15 +53,90 @@ by using an applied fluorescent dye (\cite{Skvara2012}).
   \label{fig:F-example}
 \end{subfigure}
 \caption{Example of a CM micrograph of a skin tissue.
-reflectance mode on the left and fluorescence mode on the right}
+Reflectance mode on the left and fluorescence mode on the right}
 \label{fig:CM-example}
 \end{figure}
 
 \subsection{Problem statement}
 \label{sec:problem-statement}
-% In the previous work, a \gls{dl} technique is proposed to combine
-% the two modes of the \gls{cm} into a H\&E-like image to facilitate their
-% interpretation by untrained pathologists and surgeons.
+\gls{cm} has enabled rapid evaluation of tissue samples
+directly in the surgery room significantly reducing the time of complex
+surgical operations in skin cancer (\cite{Cinotti2018}),
+but the output largely differs from the standard \gls{he} slides that
+pathologists typically use to analyze tissue samples.
+
+To bridge this gap, a method for combining the aforementioned modes of
+\gls{cm} into a H\&E-like image is presented in this work.
+A correctly done CM to H\&E mapping would bring the efficiency of \gls{cm}
+to untrained pathologists and surgeons.
+
+Similar to a false color (also knows as pseudo color) transformation,
+a parametric mapping function can be defined:
+\begin{equation} \label{eq:mapping-function}
+	\tensor{DSCM}
+	= f_{\theta}(\tensor{R}, \tensor{F})
+\end{equation}
+where $\tensor{DSCM} \in \R{}^{3 \times H \times W}$ (stands for digitally-stained
+\gls{cm}) represents the resulting H\&E-like RGB image,
+$\tensor{R} \in \R{}^{H \times W}$ and $\tensor{F} \in \R{}^{H \times W}$
+represent the reflectance and fluorescence modes (respectively) of the \gls{cm} input
+image with height $H$ and width $W$.
+
+\subsubsection{Affine transformation}
+\label{sec:affine-transformation}
+An affine transfomation is proposed in \cite{Gareau2009} for the function $f$
+where each channel ($c$) is computed as:
+\begin{equation} \label{eq:affine-transformation}
+	\tensor{DSCM}_{c,:} = \tensor{1}
+	- \tensor{F} (1 - \text{H}_c) - \tensor{R} (1 - \text{E}_c)
+\end{equation}
+where:
+$$ \tensor{H} = \begin{bmatrix} 0.30 & 0.20 & 1 \end{bmatrix} $$
+$$ \tensor{E} = \begin{bmatrix} 1 & 0.55 & 0.88 \end{bmatrix} $$
+\definecolor{Hcolor}{rgb}{0.3,0.2,1}
+\definecolor{Ecolor}{rgb}{1,0.55,0.88}
+These vectors represent coordinates in the RGB space (
+\textcolor{Hcolor}{\rule{0.7\baselineskip}{0.7\baselineskip}} and
+\textcolor{Ecolor}{\rule{0.7\baselineskip}{0.7\baselineskip}}).
+This way, the \gls{cm} modes highlight different structures in distinct
+colours similar to a \gls{he} slide; but as it can be seen in figure \ref{fig:affine-example},
+the color scheme differs from an actual \gls{he} sample.
+
+\begin{figure}[h]
+\centering
+\begin{subfigure}{.5\textwidth}
+  \centering
+  \includegraphics[width=.8\linewidth]{DSCM_Gareau}
+  \caption{Digitally stained sample using the affine transformation}
+\end{subfigure}%
+\begin{subfigure}{.5\textwidth}
+  \centering
+  \includegraphics[width=.8\linewidth]{HE}
+  \caption{H\&E stained sample}
+\end{subfigure}
+\caption{Comparison between digital stain and H\&E stain}
+\label{fig:affine-example}
+\end{figure}
+
+\subsubsection{Data-driven approach}
+In contrast to \cite{Gareau2009} work where the parameters
+($\tensor{H}$ and $\tensor{E}$) are found experimentally, a data-driven approach
+of the problem will be taken where the parameters of the mapping function
+\ref{eq:mapping-function} are found based on data.
+More specifically, the transformation will be defined by a \gls{nn} and the parameters
+will be searched through an adversarial setting.
+
+\tikzstyle{block} = [draw,fill=blue!20,minimum size=2em]
+
+\begin{tikzpicture}[>=latex']
+
+	\node (input) at (0,-1) {\includegraphics[width=.2\textwidth]{R_crop_thumbnail}};
+	\node[block] (cnn) at (4,-1) {CNN};
+	\draw[->] (input.east) -- (cnn);
+	\node (output) at (8,-1) {\includegraphics[width=.2\textwidth]{HE}};
+	\draw[->] (cnn.east) -- (output);
+
+\end{tikzpicture}
 
 % The initial chosen architectures are: a \gls{cnn} with a multiplicative
 % residual connection to reduce the noise and then a \gls{cyclegan} to combine
@@ -76,10 +147,6 @@ reflectance mode on the left and fluorescence mode on the right}
 % network can create or eliminate structures on the output image. This
 % project will focus on understanding why this happens and will try to
 % solve this problems.
-
-% In contrast to the work by Gareau et. al...
-% data-driven approach...
-\lipsum
 
 \subsection{Methods and procedures}
 \label{sec:methods-and-procedures}
@@ -92,6 +159,6 @@ The work presented in this thesis is the natural continuation of the work presen
 in \cite{Combalia2019}...
 
 \subsection{Document Structure}
-\lipsum
+\lipsum[2]
 
 \end{document}

@@ -6,7 +6,7 @@ PREFIX=main
 all : $(PREFIX).acn $(PREFIX).acr $(PREFIX).alg $(PREFIX).aux $(PREFIX).bcf $(PREFIX).bbl $(PREFIX).blg $(PREFIX).ist $(PREFIX).lof $(PREFIX).log $(PREFIX).lot $(PREFIX).out $(PREFIX).run.xml $(PREFIX).toc $(PREFIX).tex */*.tex
 	pdflatex $(PREFIX)
 
-$(PREFIX).acn $(PREFIX).aux $(PREFIX).bcf $(PREFIX).ist $(PREFIX).lof $(PREFIX).log $(PREFIX).lot $(PREFIX).out $(PREFIX).run.xml $(PREFIX).toc : $(PREFIX).tex
+$(PREFIX).acn $(PREFIX).aux $(PREFIX).bcf $(PREFIX).ist $(PREFIX).lof $(PREFIX).log $(PREFIX).lot $(PREFIX).out $(PREFIX).run.xml $(PREFIX).toc : $(PREFIX).tex */*.tex
 	pdflatex $(PREFIX)
 
 $(PREFIX).acr $(PREFIX).alg : acronyms.tex
