@@ -31,7 +31,7 @@ def main(args):
         slide_f = normalize(slide_f)
     else:
         slide_r = scale(slide_r)
-    slide_f = scale(slide_f)
+        slide_f = scale(slide_f)
     if args.normalization_method is not None:
         slide_r, slide_f = transforms.CMMinMaxNormalizer(
             args.normalization_method)(slide_r, slide_f)
