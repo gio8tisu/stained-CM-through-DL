@@ -1,5 +1,3 @@
-from itertools import product
-
 import numpy as np
 import pyvips
 import tqdm
@@ -7,6 +5,7 @@ import skimage.feature.texture
 from skimage.measure import compare_ssim
 
 from numpy_pyvips import Vips2Numpy
+from utils import pad_image
 
 
 def glco_main(args):
@@ -17,6 +16,10 @@ def glco_main(args):
     scan = pyvips.Image.new_from_file(args.input)
     # Convert to grey scale.
     scan = scan.colourspace('b-w')
+
+    if args.pad:
+        # Pad scan with args.window_size // 2 on each side.
+        scan = pad_image(scan, args.window_size // 2)
 
     cols = range(0, scan.width - args.window_size - 1, args.step)
     rows = range(0, scan.height - args.window_size - 1, args.step)
@@ -43,6 +46,8 @@ def glco_main(args):
 
                 pbar.update()
 
+    for feat in result:
+        np.save(args.output + feat, result[feat])
     return result
 
 
@@ -76,6 +81,7 @@ def ssim_main(args):
                 result[row, col] = ssim
 
                 pbar.update()
+    np.save(args.output, result)
     return result
 
 
@@ -107,6 +113,7 @@ if __name__ == '__main__':
     parser.add_argument('-o', '--output', help='output filename')
     parser.add_argument('--window-size', type=int, default=513, help='size in pixels of window')
     parser.add_argument('--step', type=int, help='Step size between windows')
+    parser.add_argument('--pad', action='store_true', help='pad image with WINDOW_SIZE // 2 on each side')
     parser.add_argument('-v', '--verbose', action='store_true')
     subparsers = parser.add_subparsers(help='select method')
     glco_parser = subparsers.add_parser('glco', help='Extract grey-level co-occurrence matrix texture metrics')
@@ -125,4 +132,3 @@ if __name__ == '__main__':
     vips2numpy = Vips2Numpy.vips2numpy
 
     result = args.func(args)
-    np.save(args.output, result)
