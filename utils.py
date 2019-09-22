@@ -21,8 +21,8 @@ class TileMosaic:
         num_w (int) - number of "horizontal" tiles.
     """
 
-    def __init__(self, original, pyvips_tiles=True,
-                 tile_shape=(2048, 2048), center_crop=None, window_type=0.25):
+    def __init__(self, original, window_type=0.25, tile_shape=(2048, 2048),
+                 center_crop=None, pyvips_tiles=True):
         """Constructor.
 
         :param original: original image, padded by tile_shape / 2.
@@ -147,7 +147,8 @@ if __name__ == '__main__':
     center_crop = (2**2 + 1, 2**2 + 1)
     image_padded = pad_image(image, 2**3)
     start_time = time.time()
-    tile_mosaic = TileMosaic(image, False, tile_shape, center_crop, window_type='pyramid')
+    tile_mosaic = TileMosaic(image, window_type='pyramid', tile_shape=tile_shape, center_crop=center_crop,
+                             pyvips_tiles=False)
 
     # transform by tiles and "feed" to TileMosaic object
     for y_pos in range(0, image_padded.height - tile_shape[0] - 1, tile_shape[0] // 4):

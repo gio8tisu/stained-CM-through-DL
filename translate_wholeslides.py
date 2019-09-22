@@ -47,8 +47,8 @@ def main_fancy(args, dataset, G_AB, transform, numpy2vips):
         if args.verbose:
             print('Transforming image {} of {} ({})'.format(i + 1, len(dataset), prefix))
 
-        tiles = TileMosaic(scan, not args.no_pyvips_tiles, size, crop,
-                           0.25 if args.window == 'rectangular' else args.window)
+        tiles = TileMosaic(scan, 0.25 if args.window == 'rectangular' else args.window, size, crop,
+                           pyvips_tiles=not args.no_pyvips_tiles)
         if args.verbose:
             print('Using {} as temporary directory'.format(tiles.tmp_dir.name))
         scan = pad_image(scan, size // 2)
