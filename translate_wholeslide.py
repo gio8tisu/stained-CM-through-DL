@@ -18,8 +18,6 @@ pyvips.voperation.cache_set_max_files(10)
 
 
 def main(args):
-    numpy2vips = numpy_pyvips.Numpy2Vips()
-
     # Read slide.
     slide_r = pyvips.Image.new_from_file(
         os.path.join(args.mosaic_directory, 'DET#1/highres_raw.tif'))
@@ -49,23 +47,29 @@ def main(args):
     G_AB = cyclegan.models.GeneratorResNet(res_blocks=9).to(device)
     # load model parameters using dataset_name and epoch number from CLI.
     G_AB.load_state_dict(torch.load(args.model, map_location=device))
-
     G_AB.eval()  # use evaluation/validation mode.
+
     size = args.patch_size
     crop = args.crop_size if args.crop_size else size // 2 + 1
     step = args.step if args.step else crop // 2
 
-    tiles = TileMosaic(scan, not args.no_pyvips_tiles, size, crop,
-                       0.25 if args.window == 'rectangular' else args.window)
+    tiles = TileMosaic(scan, 0.25 if args.window == 'rectangular' else args.window,
+                       size, crop, pyvips_tiles=not args.no_pyvips_tiles)
     if args.verbose:
         print('Using {} as temporary directory'.format(tiles.tmp_dir.name))
 
     scan = pad_image(scan, size // 2)
 
-    for x_pos in tqdm.trange(0, scan.width - size - 1, step):
-        for y_pos in range(0, scan.height - size - 1, step):
-            res = transform_tile(G_AB, scan, size, transform, x_pos, y_pos, device)
-            tiles.add_tile(res, x_pos, y_pos)
+    with tqdm.tqdm() as pbar:
+        y_pos = 0
+        while y_pos < scan.height - size - 1:
+            x_pos = 0
+            while x_pos < scan.width - size - 1:
+                res = transform_tile(G_AB, scan, size, transform, x_pos, y_pos, device, numpy2vips)
+                tiles.add_tile(res, x_pos, y_pos)
+                x_pos += step
+                pbar.update()
+            y_pos += step
     transformed = tiles.get_mosaic()
 
     # Save result.
@@ -119,6 +123,7 @@ if __name__ == '__main__':
                                      choices=[None, 'independent', 'global', 'average'])
     parser.add_argument('-v', '--verbose', action='store_true')
     parser.add_argument('--no-cuda', action='store_true', help='do not use GPU')
+    parser.add_argument('--no-pyvips-tiles', action='store_true', help='do not use pyvips in tile creation')
 
     args = parser.parse_args()
     if args.verbose:
@@ -136,6 +141,8 @@ if __name__ == '__main__':
 
     cuda = torch.cuda.is_available() and not args.no_cuda
     device = 'cuda:0' if cuda else 'cpu'
+
+    numpy2vips = numpy_pyvips.Numpy2Vips() if not args.no_pyvips_tiles else None
 
     with torch.no_grad():  # to avoid autograd overhead.
         main(args)
