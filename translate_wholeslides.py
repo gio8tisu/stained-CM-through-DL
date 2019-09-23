@@ -53,23 +53,27 @@ def main_fancy(args, dataset, G_AB, transform, numpy2vips):
             print('Using {} as temporary directory'.format(tiles.tmp_dir.name))
         scan = pad_image(scan, size // 2)
         if args.debug:
-            x_count = 0
-        for x_pos in tqdm.trange(0 if not args.debug else scan.width // 3,
-                                 scan.width - size - 1, step):
-            if args.debug and x_count > 5:
-                break
-            if args.debug:
-                y_count = 0
-            for y_pos in range(0 if not args.debug else scan.height // 3,
-                               scan.height - size - 1, step):
+            y_count = 0
+        with tqdm.tqdm() as pbar:
+            y_pos = 0
+            while y_pos < scan.height - size - 1:
+                x_pos = 0
                 if args.debug and y_count > 5:
                     break
-                res = transform_tile(G_AB, scan, size, transform, x_pos, y_pos, device, numpy2vips)
-                tiles.add_tile(res, x_pos, y_pos)
+                if args.debug:
+                    x_count = 0
+                while x_pos < scan.width - size - 1:
+                    if args.debug and y_count > 5:
+                        break
+                    res = transform_tile(G_AB, scan, size, transform, x_pos, y_pos, device, numpy2vips)
+                    tiles.add_tile(res, x_pos, y_pos)
+                    x_pos += step
+                    pbar.update()
+                    if args.debug:
+                        x_count += 1
+                y_pos += step
                 if args.debug:
                     y_count += 1
-            if args.debug:
-                x_count += 1
         image = tiles.get_mosaic()
         if args.save_linear:
             save(args, i, image, scan)
