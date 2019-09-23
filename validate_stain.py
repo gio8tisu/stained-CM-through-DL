@@ -79,6 +79,18 @@ def glco_main(args):
     return result
 
 
+def lbp_main(args):
+    scan = pyvips.Image.new_from_file(args.input)
+    scan = scan.colourspace('b-w')
+
+    result = skimage.feature.texture.local_binary_pattern(preprocess(scan),
+                                                          args.points,
+                                                          args.radius)
+
+    np.save(args.output, result)
+    return result
+
+
 def ssim_main(args):
     if args.step is None:
         args.step = args.window_size
@@ -109,6 +121,7 @@ def ssim_main(args):
                 result[row, col] = ssim
 
                 pbar.update()
+
     np.save(args.output, result)
     return result
 
@@ -149,6 +162,11 @@ if __name__ == '__main__':
     glco_parser.add_argument('--angles', nargs='+', type=float, default=[0, np.pi / 2, np.pi / 4])
     glco_parser.add_argument('--reference', required=False)
     glco_parser.set_defaults(func=glco_main)
+    lbp_parser = subparsers.add_parser('lbp', help='Extract local binary pattern texture descriptor')
+    lbp_parser.add_argument('--points', type=int, default=8, help='number of neighbors')
+    lbp_parser.add_argument('--radius', type=int, default=1, help='radius of neighborhood')
+    lbp_parser.add_argument('--reference', required=False)
+    lbp_parser.set_defaults(func=lbp_main)
     ssim_parser = subparsers.add_parser('ssim', help='Compare digital stains with SSIM')
     ssim_parser.add_argument('--reference', required=True)
     ssim_parser.set_defaults(func=ssim_main)
