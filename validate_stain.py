@@ -16,19 +16,34 @@ def glco_main(args):
     scan = pyvips.Image.new_from_file(args.input)
     # Convert to grey scale.
     scan = scan.colourspace('b-w')
+    # Repeat for reference image (if any).
+    if args.reference:
+        reference = pyvips.Image.new_from_file(args.reference)
+        assert scan.height == reference.height and scan.width == reference.width
+        reference = reference.colourspace('b-w')
 
     if args.pad:
         # Pad scan with args.window_size // 2 on each side.
         scan = pad_image(scan, args.window_size // 2)
+        if args.reference:
+            reference = pad_image(reference, args.window_size // 2)
 
     cols = range(0, scan.width - args.window_size - 1, args.step)
     rows = range(0, scan.height - args.window_size - 1, args.step)
     result = {
-        'homogeneity': np.empty((len(args.distances), len(args.angles),
-                                 len(rows), len(cols))),
-        'energy': np.empty((len(args.distances), len(args.angles),
-                            len(rows), len(cols)))
+        'homogeneity': np.empty((len(rows), len(cols),
+                                 len(args.distances), len(args.angles))),
+        'energy': np.empty((len(rows), len(cols),
+                            len(args.distances), len(args.angles)))
     }
+    if args.reference:
+        result_ref = {
+            'homogeneity': np.empty((len(rows), len(cols),
+                                     len(args.distances), len(args.angles))),
+            'energy': np.empty((len(rows), len(cols),
+                                len(args.distances), len(args.angles)))
+        }
+
     with tqdm.tqdm(total=len(cols) * len(rows)) as pbar:
         for row, y_pos in enumerate(rows):
             for col, x_pos in enumerate(cols):
@@ -41,13 +56,26 @@ def glco_main(args):
                                                           args.distances,
                                                           args.angles)
                 # Save features.
-                result['homogeneity'][..., row, col] = homogeneity
-                result['energy'][..., row, col] = energy
+                result['homogeneity'][row, col] = homogeneity
+                result['energy'][row, col] = energy
+                # Repeat for reference image (if any).
+                if args.reference:
+                    array_ref = preprocess(
+                        reference.crop(x_pos, y_pos, args.window_size, args.window_size)
+                    )
+                    P, homogeneity, energy = compute_features(array_ref,
+                                                              args.distances,
+                                                              args.angles)
+                    result_ref['homogeneity'][row, col] = homogeneity
+                    result_ref['energy'][row, col] = energy
 
                 pbar.update()
 
     for feat in result:
-        np.save(args.output + feat, result[feat])
+        np.save(args.output + '-' + feat, result[feat])
+        if args.reference:
+            print(feat, 'distance:', np.linalg.norm(result[feat] - result_ref[feat]))
+            np.save(args.output + '-' + feat + '_ref', result_ref[feat])
     return result
 
 
@@ -110,7 +138,7 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('input', type=str, help='path to input image')
-    parser.add_argument('-o', '--output', help='output filename')
+    parser.add_argument('-o', '--output', required=True, help='output filename')
     parser.add_argument('--window-size', type=int, default=513, help='size in pixels of window')
     parser.add_argument('--step', type=int, help='Step size between windows')
     parser.add_argument('--pad', action='store_true', help='pad image with WINDOW_SIZE // 2 on each side')
@@ -119,6 +147,7 @@ if __name__ == '__main__':
     glco_parser = subparsers.add_parser('glco', help='Extract grey-level co-occurrence matrix texture metrics')
     glco_parser.add_argument('--distances', nargs='+', type=int, default=[1, 2, 4])
     glco_parser.add_argument('--angles', nargs='+', type=float, default=[0, np.pi / 2, np.pi / 4])
+    glco_parser.add_argument('--reference', required=False)
     glco_parser.set_defaults(func=glco_main)
     ssim_parser = subparsers.add_parser('ssim', help='Compare digital stains with SSIM')
     ssim_parser.add_argument('--reference', required=True)
