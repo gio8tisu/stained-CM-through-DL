@@ -1,6 +1,9 @@
+import random
+
 import pyvips
 import numpy as np
 import torch
+import torchvision.transforms.functional as TF
 
 
 class VirtualStainer:
@@ -96,3 +99,44 @@ class CMMinMaxNormalizer:
         if max_ is None:
             max_ = img.max()
         return (img - min_) / (max_ - min_)
+
+
+class CMRandomCrop:
+    def __init__(self, height, width):
+        self.height = height
+        self.width = width
+
+    def __call__(self, R, F):
+        r_height, r_width = R.size
+        f_height, f_width = F.size
+        assert r_height == f_height
+        assert r_width == f_width
+        rand_i = random.randrange(r_height // 2)
+        rand_j = random.randrange(r_width // 2)
+
+        R = TF.crop(R, rand_i, rand_j, self.height, self.width)
+        F = TF.crop(F, rand_i, rand_j, self.height, self.width)
+        return R, F
+
+
+class CMRandomHorizontalFlip:
+    def __call__(self, R, F):
+        if random.random() > 0.5:
+            R = TF.hflip(R)
+            F = TF.hflip(F)
+        return R, F
+
+
+class CMRandomVerticalFlip:
+    def __call__(self, R, F):
+        if random.random() > 0.5:
+            R = TF.vflip(R)
+            F = TF.vflip(F)
+        return R, F
+
+
+class CMToTensor:
+    def __call__(self, R, F):
+        R = TF.to_tensor(R)
+        F = TF.to_tensor(F)
+        return torch.cat((R, F))
