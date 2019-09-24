@@ -52,20 +52,21 @@ def glco_main(args):
                     scan.crop(x_pos, y_pos, args.window_size, args.window_size)
                 )
                 # Compute texture descriptors.
-                P, homogeneity, energy = compute_features(array,
-                                                          args.distances,
-                                                          args.angles)
+                P, homogeneity, energy = compute_comatrix_features(array,
+                                                                   args.distances,
+                                                                   args.angles)
                 # Save features.
                 result['homogeneity'][row, col] = homogeneity
                 result['energy'][row, col] = energy
                 # Repeat for reference image (if any).
                 if args.reference:
                     array_ref = preprocess(
-                        reference.crop(x_pos, y_pos, args.window_size, args.window_size)
+                        reference.crop(x_pos, y_pos,
+                                       args.window_size, args.window_size)
                     )
-                    P, homogeneity, energy = compute_features(array_ref,
-                                                              args.distances,
-                                                              args.angles)
+                    P, homogeneity, energy = compute_comatrix_features(array_ref,
+                                                                       args.distances,
+                                                                       args.angles)
                     result_ref['homogeneity'][row, col] = homogeneity
                     result_ref['energy'][row, col] = energy
 
@@ -80,14 +81,56 @@ def glco_main(args):
 
 
 def lbp_main(args):
-    scan = pyvips.Image.new_from_file(args.input)
-    scan = scan.colourspace('b-w')
+    if args.step is None:
+        args.step = args.window_size
 
-    result = skimage.feature.texture.local_binary_pattern(preprocess(scan),
-                                                          args.points,
-                                                          args.radius)
+    # Read slide.
+    scan = pyvips.Image.new_from_file(args.input)
+    # Convert to grey scale.
+    scan = scan.colourspace('b-w')
+    # Repeat for reference image (if any).
+    if args.reference:
+        reference = pyvips.Image.new_from_file(args.reference)
+        assert scan.height == reference.height and scan.width == reference.width
+        reference = reference.colourspace('b-w')
+
+    cols = range(0, scan.width - args.window_size - 1, args.step)
+    rows = range(0, scan.height - args.window_size - 1, args.step)
+    result = np.empty((len(rows), len(cols), 2 ** args.points))
+    if args.reference:
+        result_ref = np.empty((len(rows), len(cols), 2 ** args.points))
+
+    with tqdm.tqdm(total=len(cols) * len(rows)) as pbar:
+        for row, y_pos in enumerate(rows):
+            for col, x_pos in enumerate(cols):
+                # "Grab" window and apply pre-processing.
+                array = preprocess(
+                    scan.crop(x_pos, y_pos, args.window_size, args.window_size)
+                )
+                # Compute texture descriptors.
+                lbp, hist = compute_lbp_histogram(array,
+                                                  args.points, args.radius)
+                # Save features.
+                result[row, col] = hist
+                # Repeat for reference image (if any).
+                if args.reference:
+                    array_ref = preprocess(
+                        reference.crop(x_pos, y_pos,
+                                       args.window_size, args.window_size)
+                    )
+                    lbp, hist = compute_lbp_histogram(array_ref,
+                                                      args.points, args.radius)
+                    result_ref[row, col] = hist
+
+                pbar.update()
 
     np.save(args.output, result)
+    if args.reference:
+        difference = result - result_ref
+        print('distance:', np.linalg.norm(difference))
+        print('mean distance:', np.mean(np.linalg.norm(difference, axis=2)))
+        np.save(args.output + '_ref', result_ref)
+        return result, difference
     return result
 
 
@@ -113,7 +156,8 @@ def ssim_main(args):
                     scan.crop(x_pos, y_pos, args.window_size, args.window_size)
                 )
                 array_ref = preprocess(
-                    reference.crop(x_pos, y_pos, args.window_size, args.window_size)
+                    reference.crop(x_pos, y_pos,
+                                   args.window_size, args.window_size)
                 )
                 # Compute texture descriptors.
                 ssim = compare_ssim(array, array_ref)
@@ -134,7 +178,7 @@ def preprocess(crop):
     return array
 
 
-def compute_features(array, distances, angles):
+def compute_comatrix_features(array, distances, angles):
     """Return co-occurrence matrix, homogeneity and energy."""
     # Compute co-occurrence matrix.
     P = skimage.feature.texture.greycomatrix(array, distances, angles,
@@ -143,6 +187,15 @@ def compute_features(array, distances, angles):
     homogeneity = skimage.feature.texture.greycoprops(P, 'homogeneity')
     energy = skimage.feature.texture.greycoprops(P, 'energy')
     return P, homogeneity, energy
+
+
+def compute_lbp_histogram(array, points, radius):
+    """Return LBP image and normalized histogram."""
+    # Compute LBP image.
+    lbp = skimage.feature.texture.local_binary_pattern(array, points, radius)
+    # Compute histogram.
+    hist = np.bincount(lbp.flatten().astype(np.int), minlength=2 ** points)
+    return lbp, hist / np.sum(hist)
 
 
 if __name__ == '__main__':
