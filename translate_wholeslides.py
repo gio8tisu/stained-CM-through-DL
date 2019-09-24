@@ -98,7 +98,10 @@ def transform_tile(model, scan, size, transform, x_pos, y_pos, device, numpy2vip
 
 def save(args, i, transformed, linear=None):
     transformed *= 255.0
-    output_file = os.path.join(args.output, '{}{}.{}'.format(args.prefix, i, 'tif' if args.compression else args.format))
+    output_file = os.path.join(
+        args.output,
+        '{}{}.{}'.format(args.prefix, i, 'tif' if args.compression else args.format)
+    )
     if args.verbose:
         print('Saving transformed image to ' + output_file)
     if args.compression:
@@ -108,7 +111,10 @@ def save(args, i, transformed, linear=None):
         transformed.write_to_file(output_file)
     if linear:
         linear *= 255.0
-        output_file = os.path.join(args.output, '{}_linear_{}.{}'.format(args.prefix, i, 'tif' if args.compression else args.format))
+        output_file = os.path.join(
+            args.output,
+            '{}{}_linear.{}'.format(args.prefix, i, 'tif' if args.compression else args.format)
+        )
         if args.verbose:
             print('Saving linear transform image to ' + output_file)
         if args.compression:
