@@ -9,7 +9,8 @@ import numpy as np
 
 from torchvision.utils import save_image
 
-class ReplayBuffer():
+
+class ReplayBuffer:
     def __init__(self, max_size=50):
         assert (max_size > 0), 'Empty buffer or trying to create a black hole. Be careful.'
         self.max_size = max_size
@@ -31,7 +32,8 @@ class ReplayBuffer():
                     to_return.append(element)
         return Variable(torch.cat(to_return))
 
-class LambdaLR():
+
+class LambdaLR:
     def __init__(self, n_epochs, offset, decay_start_epoch):
         assert ((n_epochs - decay_start_epoch) > 0), "Decay must start before the training session ends!"
         self.n_epochs = n_epochs

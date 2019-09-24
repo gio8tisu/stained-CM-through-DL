@@ -10,6 +10,7 @@ import numpy as np
 
 import sys
 
+
 class ImageDataset(Dataset):
     def __init__(self, root, transforms_A=None, transforms_B=None, unaligned=False, mode='train'):
         self.transform_A = transforms.Compose(transforms_A)
@@ -18,7 +19,6 @@ class ImageDataset(Dataset):
 
         self.files_A = sorted(glob.glob(os.path.join(root, '%s/A' % mode) + '/*.*'))
         self.files_B = sorted(glob.glob(os.path.join(root, '%s/B' % mode) + '/*.*'))
-
 
     def __getitem__(self, index):
         item_A = self.transform_A(Image.open(self.files_A[index % len(self.files_A)]))
