@@ -3,6 +3,7 @@ import pathlib
 import random
 from abc import ABCMeta, abstractmethod
 import warnings
+import glob
 
 import torch.utils.data
 from torchvision import transforms
@@ -286,10 +287,30 @@ class NoisyCMCropsDataset(CMCropsDataset):
         If return_prefix, return ((noisy, clean), prefix) tuple.
         Return (noisy, clean) otherwise.
         """
-        sample = super().__getitem__(item)
+        clean = super().__getitem__(item)
         if self.return_prefix:
-            clean, prefix = sample
+            clean, prefix = clean
         noisy = self.add_noise(clean)
         if self.return_prefix:
             return (noisy, clean), prefix
         return noisy, clean
+
+
+class SimpleDataset(torch.utils.data.Dataset):
+    EXTENSIONS = ['.png', '.jpg', '.tif']
+
+    def __init__(self, root_dir, transform=None):
+        self.root_dir = pathlib.Path(root_dir)
+        self.files = [file for file in self.root_dir.glob('*.*')
+                      if file.suffix in self.EXTENSIONS]
+
+        self.transform = transform
+
+    def __getitem__(self, item):
+        img = Image.open(self.files[item])
+        if self.transform:
+            img = self.transform(img)
+        return img
+
+    def __len__(self):
+        return len(self.files)
