@@ -75,7 +75,10 @@ def glco_main(args):
     for feat in result:
         np.save(args.output + '-' + feat, result[feat])
         if args.reference:
-            print(feat, 'distance:', np.linalg.norm(result[feat] - result_ref[feat]))
+            difference = result[feat] - result_ref[feat]
+            print(feat, 'distance:', np.linalg.norm(difference))
+            print(feat, 'average distance:',
+                  np.mean(np.linalg.norm(difference, axis=(2, 3))))
             np.save(args.output + '-' + feat + '_ref', result_ref[feat])
     return result
 
