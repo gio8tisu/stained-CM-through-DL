@@ -128,7 +128,7 @@ def lbp_main(args):
     if args.reference:
         difference = result - result_ref
         print('distance:', np.linalg.norm(difference))
-        print('mean distance:', np.mean(np.linalg.norm(difference, axis=2)))
+        print('average distance:', np.mean(np.linalg.norm(difference, axis=2)))
         np.save(args.output + '_ref', result_ref)
         return result, difference
     return result
