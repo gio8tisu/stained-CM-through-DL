@@ -73,13 +73,15 @@ def glco_main(args):
                 pbar.update()
 
     for feat in result:
-        np.save(args.output + '-' + feat, result[feat])
+        if args.output:
+            np.save(args.output + '-' + feat, result[feat])
         if args.reference:
             difference = result[feat] - result_ref[feat]
             print(feat, 'distance:', np.linalg.norm(difference))
             print(feat, 'average distance:',
                   np.mean(np.linalg.norm(difference, axis=(2, 3))))
-            np.save(args.output + '-' + feat + '_ref', result_ref[feat])
+            if args.output:
+                np.save(args.output + '-' + feat + '_ref', result_ref[feat])
     return result
 
 
@@ -127,13 +129,15 @@ def lbp_main(args):
 
                 pbar.update()
 
-    np.save(args.output, result)
+    if args.output:
+        np.save(args.output, result)
     if args.reference:
-        difference = result - result_ref
-        print('distance:', np.linalg.norm(difference))
-        print('average distance:', np.mean(np.linalg.norm(difference, axis=2)))
-        np.save(args.output + '_ref', result_ref)
-        return result, difference
+        dist_func = define_histogram_distance(args.histogram_distance)
+        print('global distance:', np.linalg.norm(result - result_ref))
+        print('average distance:', np.mean(dist_func(result, result_ref, axis=2)))
+        if args.output:
+            np.save(args.output + '_ref', result_ref)
+        return result, result_ref
     return result
 
 
@@ -169,7 +173,9 @@ def ssim_main(args):
 
                 pbar.update()
 
-    np.save(args.output, result)
+    print('average SSIM:', np.mean(result))
+    if args.output:
+        np.save(args.output, result)
     return result
 
 
@@ -201,13 +207,48 @@ def compute_lbp_histogram(array, points, radius):
     return lbp, hist / np.sum(hist)
 
 
+def define_histogram_distance(distance_str):
+    """Return function to compute distance between histograms.
+
+    The returned function's arguments are hist_1, hist_2 and axis;
+    where hist_1 and hist_2 are numpy arrays with histogram/s
+    represented in the "axis" axis.
+    """
+    if distance_str.startswith('norm'):
+        order = int(distance_str.split('-')[1])
+
+        def dist(hist_1, hist_2, axis=None):
+            difference = hist_1 - hist_2
+            return np.linalg.norm(difference, order, axis)
+
+    elif distance_str == 'chi-squared':
+
+        def dist(hist_1, hist_2, axis=None):
+            difference_squared = (hist_1 - hist_2) ** 2
+            sum_ = hist_1 + hist_2
+            return 0.5 * np.sum(np.true_divide(difference_squared, sum_,
+                                               where=sum_ > 0),
+                                axis=axis)
+
+    elif distance_str == 'intersection':
+
+        def dist(hist_1, hist_2, axis=None):
+            minima = np.minimum(hist_1, hist_2)
+            return 1 - minima.sum(axis=axis)
+
+    else:
+        raise NotImplementedError
+
+    return dist
+
+
 if __name__ == '__main__':
     # CLI arguments.
     import argparse
 
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('input', type=str, help='path to input image')
-    parser.add_argument('-o', '--output', required=True, help='output filename')
+    parser.add_argument('-o', '--output', required=False, help='output filename')
     parser.add_argument('--window-size', type=int, default=513, help='size in pixels of window')
     parser.add_argument('--step', type=int, help='Step size between windows')
     parser.add_argument('--pad', action='store_true', help='pad image with WINDOW_SIZE // 2 on each side')
@@ -219,6 +260,9 @@ if __name__ == '__main__':
     glco_parser.add_argument('--reference', required=False)
     glco_parser.set_defaults(func=glco_main)
     lbp_parser = subparsers.add_parser('lbp', help='Extract local binary pattern texture descriptor')
+    lbp_parser.add_argument('--histogram-distance', default='norm-1',
+                            choices=[f'norm-{i}' for i in range(4)] + ['chi-squared', 'intersection'],
+                            help='distance measure for histograms')
     lbp_parser.add_argument('--points', type=int, default=8, help='number of neighbors')
     lbp_parser.add_argument('--radius', type=int, default=1, help='radius of neighborhood')
     lbp_parser.add_argument('--reference', required=False)
