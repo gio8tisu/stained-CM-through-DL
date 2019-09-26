@@ -18,7 +18,7 @@ to the transformation of \gls{cm} histological images into \gls{he} appearance.
 \subsubsection{Confocal microscopy}
 \gls{cm} is an optical imaging technique for increasing optical resolution
 and contrast of a micrograph by means of using a spatial pinhole to block
-out-of-focus light in image formation. With it, technician are able to slice
+out-of-focus light in image formation. With it, technicians are able to slice
 thin sections out of thick fluorescent specimens, view specimens
 in planes tilted to the line of sight, penetrate deep into light-scattering
 tissues, obtain 3D views at very high resolution... (\cite{Inoue2006})
@@ -33,8 +33,8 @@ squamous cell carcinomas (SCCs), the two most common types of skin cancer.
 The procedure is done in stages, including lab work, while the patient waits.
 This allows the removal of all cancerous cells for the highest cure rate
 while sparing healthy tissue and leaving the smallest possible scar.}
-by rapidly detecting carcinomas without conventional frozen histopathology.
-(\cite{Chung2005})
+by rapidly detecting carcinomas without conventional frozen histopathology
+(and its consequential time delays) (\cite{Chung2005}).
 
 Two different \gls{cm} modes exist, \gls{rcm} displays the backscattering signal
 of naturally occurring skin components, whereas \gls{fcm} provides contrast
@@ -70,7 +70,7 @@ To bridge this gap, a method for combining the aforementioned modes of
 A correctly done CM to H\&E mapping would bring the efficiency of \gls{cm}
 to untrained pathologists and surgeons.
 
-Similar to a false color (also knows as pseudo color) transformation,
+Similar to a false color (also known as pseudo color) transformation,
 a parametric mapping function can be defined:
 \begin{equation} \label{eq:mapping-function}
 	\tensor{DSCM}
@@ -122,9 +122,9 @@ the color scheme differs from an actual \gls{he} sample.
 In contrast to \cite{Gareau2009} work where the parameters
 ($\tensor{H}$ and $\tensor{E}$) are found experimentally, a data-driven approach
 of the problem will be taken where the parameters of the mapping function
-\ref{eq:mapping-function} are \emph{learned} based on data.
-More specifically, the transformation will be defined by a \gls{nn} and the parameters
-will be searched through an adversarial setting.
+\eqref{eq:mapping-function} are \emph{learned} based on data.
+More specifically, the transformation will be defined by a \gls{nn} (called \emph{StainNN})
+and the parameters will be searched through an adversarial setting.
 
 % \tikzstyle{block} = [draw,fill=blue!20,minimum size=2em]
 % 
@@ -138,15 +138,21 @@ will be searched through an adversarial setting.
 % 
 % \end{tikzpicture}
 
-% The initial chosen architectures are: a \gls{cnn} with a multiplicative
-% residual connection to reduce the noise and then a \gls{cyclegan} to combine
-% the two CM modes into a digitally stained slide.
+\subsubsection{Speckle noise reduction}
+\gls{rcm} images are affected by a multiplicative noise known as speckle,
+which may impair the performance of post-processing techniques.
+Hence, before digitally staining the \gls{cm} images, this noise must be reduced.
 
-% The current model has room for improvements: the despeckling neural
-% network sometimes produces undesired artifacts and de stain generative
-% network can create or eliminate structures on the output image. This
-% project will focus on understanding why this happens and will try to
-% solve this problems.
+The observed \gls{rcm} image $Y$ is related to the noise free image $X$ by
+the following multiplicative model:
+\begin{equation} \label{eq:speckle-model}
+	Y = X \odot F
+\end{equation}
+Where $\odot$ denotes the Hadamard product (also known as the elementwise product)
+and $F$ is the speckle noise random variable.
+
+To reduce the speckle noise, a data-driven approach will also be taken using
+the called \emph{DespecklingNN}.
 
 \subsection{Methods and procedures}
 \label{sec:methods-and-procedures}
@@ -159,6 +165,17 @@ The work presented in this thesis is the natural continuation of the work presen
 in \cite{Combalia2019}...
 
 \subsection{Document Structure}
-\lipsum[2]
+In section \ref{sec:theoric-background} an overview of relevant \gls{dl} techniques and algorithms
+is presented to provide the reader a general knowledge of the field.
 
+Section \ref{sec:methodology} contains the methodology of the project with detailed
+explanations of the models used to solve the presented problems. First the
+\emph{DespeklingNN} is introduced in \ref{sec:despeckling-network} then the
+\emph{StainNN} in \ref{sec:stain-network}.
+
+The experiments carried out to choose the right models are presented in section
+\ref{sec:experiments-and-results}.
+
+Finally, the conclusions and future work are discused in section
+\ref{sec:conclusions-and-future-development}.
 \end{document}
