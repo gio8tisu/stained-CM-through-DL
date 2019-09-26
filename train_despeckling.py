@@ -171,7 +171,7 @@ def get_model(model_str, *args, **kwargs):
     try:
         model_class = getattr(models, class_name)
     except AttributeError:
-        raise AttributeError(model_str + 'model does not exist.')
+        raise AttributeError(model_str + ' model does not exist.')
     return model_class(*args, **kwargs)
 
 

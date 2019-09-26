@@ -10,7 +10,7 @@ import sys
 class ResModel(nn.Module):
     """Model with residual/skip connection."""
 
-    def __init__(self, sub_module, skip_connection=None):
+    def __init__(self, sub_module, skip_connection=lambda x, y: x + y):
         """
 
         :param sub_module: model between input and skip connection.
@@ -18,16 +18,12 @@ class ResModel(nn.Module):
         """
         super(ResModel, self).__init__()
 
-        if not skip_connection:
-            self.skip_connection = lambda x, y: x + y
-        else:
-            self.skip_connection = skip_connection
+        self.skip_connection = skip_connection
 
-        self._conv_part = sub_module
-        # self._tanh = nn.Tanh()
+        self.noise_removal_block = sub_module
 
     def forward(self, x):
-        clean = self.skip_connection(x, self._conv_part(x))
+        clean = self.skip_connection(x, self.noise_removal_block(x))
         # clean = self._tanh(clean)
 
         return clean
@@ -92,7 +88,7 @@ class LogAddDespeckle(nn.Module):
 class DilatedLogAddDespeckle(nn.Module):
     """Apply log to pixel values, residual block with addition, apply exponential."""
 
-    SAVE_LOG_EPSILON = 1E-3  # small number to avoid log(0).
+    SAVE_LOG_EPSILON = 1E-5  # small number to avoid log(0).
 
     def __init__(self, n_layers=6, n_filters=64):
         super(DilatedLogAddDespeckle, self).__init__()
@@ -108,7 +104,7 @@ class DilatedLogAddDespeckle(nn.Module):
 class LogSubtractDespeckle(nn.Module):
     """Apply log to pixel values, residual block with subtraction, apply exponential."""
 
-    SAVE_LOG_EPSILON = 1E-3  # small number to avoid log(0).
+    SAVE_LOG_EPSILON = 1E-5  # small number to avoid log(0).
 
     def __init__(self, n_layers=6, n_filters=64):
         super(LogSubtractDespeckle, self).__init__()
@@ -138,7 +134,7 @@ class MultiplyDespeckle(nn.Module):
 class DivideDespeckle(nn.Module):
     """Residual block with division."""
 
-    SAVE_DIV_EPSILON = 1E-3  # small number to avoid division by zero.
+    SAVE_DIV_EPSILON = 1E-5  # small number to avoid division by zero.
 
     def __init__(self, n_layers=6, n_filters=64):
         super(DivideDespeckle, self).__init__()
