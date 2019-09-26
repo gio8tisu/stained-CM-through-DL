@@ -1,3 +1,6 @@
+import os.path
+from itertools import product
+
 import numpy as np
 import pyvips
 import tqdm
@@ -132,11 +135,20 @@ def lbp_main(args):
     if args.output:
         np.save(args.output, result)
     if args.reference:
+        # Get function to compute histogram distances and compute them.
         dist_func = define_histogram_distance(args.histogram_distance)
+        distances = dist_func(result, result_ref, axis=2)
         print('global distance:', np.linalg.norm(result - result_ref))
-        print('average distance:', np.mean(dist_func(result, result_ref, axis=2)))
+        print('average distance:', np.mean(distances))
         if args.output:
             np.save(args.output + '_ref', result_ref)
+            # Write a file with window descriptions.
+            with open(args.output + '_windows.csv', 'w') as f:
+                f.write('row,col,lbp-histogram-distance')
+                print('row', 'col', 'lbp-histogram-distance', sep=',', file=f)
+                for i, j in product(range(distances.shape[0]), range(distances.shape[1])):
+                    print(i, j, distances[i, j], sep=',', file=f)
+
         return result, result_ref
     return result
 
@@ -176,6 +188,12 @@ def ssim_main(args):
     print('average SSIM:', np.mean(result))
     if args.output:
         np.save(args.output, result)
+        # Write a file with window descriptions.
+        with open(args.output + '_windows.csv', 'w') as f:
+            f.write('row,col,ssim')
+            print('row', 'col', 'ssim', sep=',', file=f)
+            for i, j in product(range(result.shape[0]), range(result.shape[1])):
+                print(i, j, result[i, j], sep=',', file=f)
     return result
 
 
@@ -260,7 +278,7 @@ if __name__ == '__main__':
     glco_parser.add_argument('--reference', required=False)
     glco_parser.set_defaults(func=glco_main)
     lbp_parser = subparsers.add_parser('lbp', help='Extract local binary pattern texture descriptor')
-    lbp_parser.add_argument('--histogram-distance', default='norm-1',
+    lbp_parser.add_argument('--histogram-distance', default='chi-squared',
                             choices=[f'norm-{i}' for i in range(4)] + ['chi-squared', 'intersection'],
                             help='distance measure for histograms')
     lbp_parser.add_argument('--points', type=int, default=8, help='number of neighbors')
