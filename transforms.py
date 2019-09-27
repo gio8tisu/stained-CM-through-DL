@@ -102,6 +102,7 @@ class CMMinMaxNormalizer:
 
 
 class CMRandomCrop:
+
     def __init__(self, height, width):
         self.height = height
         self.width = width
@@ -120,6 +121,7 @@ class CMRandomCrop:
 
 
 class CMRandomHorizontalFlip:
+
     def __call__(self, R, F):
         if random.random() > 0.5:
             R = TF.hflip(R)
@@ -128,6 +130,7 @@ class CMRandomHorizontalFlip:
 
 
 class CMRandomVerticalFlip:
+
     def __call__(self, R, F):
         if random.random() > 0.5:
             R = TF.vflip(R)
@@ -136,7 +139,20 @@ class CMRandomVerticalFlip:
 
 
 class CMToTensor:
+
     def __call__(self, R, F):
         R = TF.to_tensor(R)
         F = TF.to_tensor(F)
         return torch.cat((R, F))
+
+
+class CMCompose:
+    """Composes several transforms together."""
+
+    def __init__(self, transforms):
+        self.transforms = transforms
+
+    def __call__(self, R, F):
+        for t in self.transforms:
+            R, F = t(R, F)
+        return R, F
