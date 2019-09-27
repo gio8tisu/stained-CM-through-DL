@@ -54,9 +54,11 @@ if __name__ == '__main__':
     parser.add_argument('--checkpoint-dir', required=True, help='directory with stored model checkpoints.')
     parser.add_argument('--epoch', type=int, help='epoch to get model from. (default: latest)')
     parser.add_argument('--model', default='log_add', help='model name.')
-    parser.add_argument('--layers', default=6, type=int, help='number of convolutional layers.')
+    parser.add_argument('--layers', default=6, type=int, help='number of convolution layers.')
     parser.add_argument('--filters', default=64, type=int,
-                        help='number of filters on each convolutional layer.')
+                        help='number of filters/kernels on each convolution layer.')
+    parser.add_argument('--filters-size', default=3, type=int,
+                        help='filters/kernels size on each convolution layer.')
     parser.add_argument('--patch-size', type=int, default=1024, help='size in pixels of patch/window.')
     parser.add_argument('-v', '--verbose', action='store_true')
 
@@ -77,7 +79,7 @@ if __name__ == '__main__':
     dataset = SkinCMDataset(args.directory, only_R=True,
                             transform_R=transforms.Lambda(lambda x: x / 65535))
 
-    model = get_model(args.model, args.layers, args.filters)
+    model = get_model(args.model, args.layers, args.filters, args.filters_size)
     if cuda:
         model = model.cuda()
     model_path = os.path.join(

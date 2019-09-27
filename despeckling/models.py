@@ -6,6 +6,9 @@ import torch
 
 import sys
 
+SAFE_LOG_EPSILON = 1E-5  # small number to avoid log(0).
+SAFE_DIV_EPSILON = 1E-5  # small number to avoid division by zero.
+
 
 class ResModel(nn.Module):
     """Model with residual/skip connection."""
@@ -30,16 +33,18 @@ class ResModel(nn.Module):
 
 
 class BasicConv(nn.Module):
-    """Series of convolutional layers keeping the same image shape."""
+    """Series of convolution layers keeping the same image shape."""
 
-    def __init__(self, in_channels=1, n_layers=6, n_filters=64):
+    def __init__(self, in_channels=1, n_layers=6, n_filters=64, kernel_size=3):
         super(BasicConv, self).__init__()
-        model = [nn.Sequential(nn.Conv2d(in_channels, n_filters, 3, padding=1),
+        model = [nn.Sequential(nn.Conv2d(in_channels, n_filters, kernel_size,
+                                         padding=kernel_size // 2),
                                nn.BatchNorm2d(n_filters),
                                nn.PReLU())
                  ]
         for _ in range(n_layers - 1):
-            model += [nn.Sequential(nn.Conv2d(n_filters, n_filters, 3, padding=1),
+            model += [nn.Sequential(nn.Conv2d(n_filters, n_filters, kernel_size,
+                                              padding=kernel_size // 2),
                                     nn.BatchNorm2d(n_filters),
                                     nn.PReLU())
                       ]
@@ -51,16 +56,16 @@ class BasicConv(nn.Module):
 
 
 class DilatedConv(nn.Module):
-    """Series of convolutional layers with dilation 2 keeping the same image shape."""
+    """Series of convolution layers with dilation 2 keeping the same image shape."""
 
-    def __init__(self, in_channels=1, n_layers=6, n_filters=64):
+    def __init__(self, in_channels=1, n_layers=6, n_filters=64, kernel_size=3):
         super(DilatedConv, self).__init__()
-        model = [nn.Sequential(nn.Conv2d(in_channels, n_filters, 3, padding=2, dilation=2),
+        model = [nn.Sequential(nn.Conv2d(in_channels, n_filters, kernel_size, padding=2, dilation=2),
                                nn.BatchNorm2d(n_filters),
                                nn.PReLU())
                  ]
         for _ in range(n_layers - 1):
-            model += [nn.Sequential(nn.Conv2d(n_filters, n_filters, 3, padding=2, dilation=2),
+            model += [nn.Sequential(nn.Conv2d(n_filters, n_filters, kernel_size, padding=2, dilation=2),
                                     nn.BatchNorm2d(n_filters),
                                     nn.PReLU())
                       ]
@@ -74,13 +79,14 @@ class DilatedConv(nn.Module):
 class LogAddDespeckle(nn.Module):
     """Apply log to pixel values, residual block with addition, apply exponential."""
 
-    def __init__(self, n_layers=6, n_filters=64):
+    def __init__(self, n_layers=6, n_filters=64, kernel_size=3):
         super(LogAddDespeckle, self).__init__()
-        conv = BasicConv(in_channels=1, n_layers=n_layers, n_filters=n_filters)
+        conv = BasicConv(in_channels=1, n_layers=n_layers, n_filters=n_filters,
+                         kernel_size=kernel_size)
         self.remove_noise = ResModel(conv, skip_connection=lambda x, y: x + y)
 
     def forward(self, x):
-        log_x = (x + 0.0001).log()
+        log_x = (x + SAFE_LOG_EPSILON).log()
         clean_log_x = self.remove_noise(log_x)
         return clean_log_x.exp()
 
@@ -88,15 +94,14 @@ class LogAddDespeckle(nn.Module):
 class DilatedLogAddDespeckle(nn.Module):
     """Apply log to pixel values, residual block with addition, apply exponential."""
 
-    SAVE_LOG_EPSILON = 1E-5  # small number to avoid log(0).
-
-    def __init__(self, n_layers=6, n_filters=64):
+    def __init__(self, n_layers=6, n_filters=64, kernel_size=3):
         super(DilatedLogAddDespeckle, self).__init__()
-        conv = DilatedConv(in_channels=1, n_layers=n_layers, n_filters=n_filters)
+        conv = DilatedConv(in_channels=1, n_layers=n_layers, n_filters=n_filters,
+                           kernel_size=kernel_size)
         self.remove_noise = ResModel(conv, skip_connection=lambda x, y: x + y)
 
     def forward(self, x):
-        log_x = (x + self.SAVE_LOG_EPSILON).log()
+        log_x = (x + SAFE_LOG_EPSILON).log()
         clean_log_x = self.remove_noise(log_x)
         return clean_log_x.exp()
 
@@ -104,15 +109,14 @@ class DilatedLogAddDespeckle(nn.Module):
 class LogSubtractDespeckle(nn.Module):
     """Apply log to pixel values, residual block with subtraction, apply exponential."""
 
-    SAVE_LOG_EPSILON = 1E-5  # small number to avoid log(0).
-
-    def __init__(self, n_layers=6, n_filters=64):
+    def __init__(self, n_layers=6, n_filters=64, kernel_size=3):
         super(LogSubtractDespeckle, self).__init__()
-        conv = BasicConv(in_channels=1, n_layers=n_layers, n_filters=n_filters)
+        conv = BasicConv(in_channels=1, n_layers=n_layers, n_filters=n_filters,
+                         kernel_size=kernel_size)
         self.remove_noise = ResModel(conv, skip_connection=lambda x, y: x - y)
 
     def forward(self, x):
-        log_x = (x + self.SAVE_LOG_EPSILON).log()
+        log_x = (x + SAFE_LOG_EPSILON).log()
         clean_log_x = self.remove_noise(log_x)
         return clean_log_x.exp()
 
@@ -120,9 +124,10 @@ class LogSubtractDespeckle(nn.Module):
 class MultiplyDespeckle(nn.Module):
     """Residual block with multiplication."""
 
-    def __init__(self, n_layers=6, n_filters=64):
+    def __init__(self, n_layers=6, n_filters=64, kernel_size=3):
         super(MultiplyDespeckle, self).__init__()
-        conv = BasicConv(in_channels=1, n_layers=n_layers, n_filters=n_filters)
+        conv = BasicConv(in_channels=1, n_layers=n_layers, n_filters=n_filters,
+                         kernel_size=kernel_size)
         self.remove_noise = ResModel(conv, skip_connection=lambda x, y: x * y)
         self.last_activation = nn.Sequential(nn.BatchNorm2d(1), nn.Sigmoid())
 
@@ -134,13 +139,12 @@ class MultiplyDespeckle(nn.Module):
 class DivideDespeckle(nn.Module):
     """Residual block with division."""
 
-    SAVE_DIV_EPSILON = 1E-5  # small number to avoid division by zero.
-
-    def __init__(self, n_layers=6, n_filters=64):
+    def __init__(self, n_layers=6, n_filters=64, kernel_size=3):
         super(DivideDespeckle, self).__init__()
-        conv = BasicConv(in_channels=1, n_layers=n_layers, n_filters=n_filters)
+        conv = BasicConv(in_channels=1, n_layers=n_layers, n_filters=n_filters,
+                         kernel_size=kernel_size)
         self.remove_noise = ResModel(conv,
-                                     skip_connection=lambda x, y: x / (y + self.SAVE_DIV_EPSILON))
+                                     skip_connection=lambda x, y: x / (y + SAFE_DIV_EPSILON))
         self.last_activation = nn.Sequential(nn.BatchNorm2d(1), nn.Sigmoid())
 
     def forward(self, x):

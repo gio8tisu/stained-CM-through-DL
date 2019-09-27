@@ -43,7 +43,7 @@ def main(opt):
     val_dataloader = DataLoader(val_dataset, batch_size=opt.batch_size, num_workers=4)
 
     # Define model and loss criterion.
-    model = get_model(opt.model, opt.layers, opt.filters)
+    model = get_model(opt.model, opt.layers, opt.filters, opt.filters_size)
     if opt.criterion == 'mse':
         criterion = MSELoss()
     elif opt.criterion == 'l1':
@@ -120,7 +120,7 @@ def main(opt):
         ssim_hist_eval.append((epoch, med_ssim_eval / (i + 1)))
         write_lc_step(epoch, loss_hist[-1][1], loss_hist_eval[-1][1], ssim_hist_eval[-1][1])
         torch.save(model.state_dict(), os.path.join(opt.output, '{}_latest.h5'.format(opt.model)))
-        if epoch % opt.save_period:
+        if epoch % opt.save_period == 0:
             torch.save(model.state_dict(), os.path.join(opt.output, '{}_epoch{}.h5'.format(opt.model, epoch)))
 
     torch.save(model.state_dict(), os.path.join(opt.output, 'model_latest.h5'))
@@ -171,7 +171,7 @@ def get_model(model_str, *args, **kwargs):
     try:
         model_class = getattr(models, class_name)
     except AttributeError:
-        raise AttributeError(model_str + ' model does not exist.')
+        raise AttributeError(class_name + ' model does not exist.')
     return model_class(*args, **kwargs)
 
 
@@ -197,10 +197,12 @@ if __name__ == '__main__':
     parser.add_argument('--model', default='log_add', help='model name.')
     parser.add_argument('--layers', default=6, type=int, help='number of convolutional layers.')
     parser.add_argument('--filters', default=64, type=int,
-                        help='number of filters on each convolutional layer.')
+                        help='number of filters on each convolution layer.')
+    parser.add_argument('--filters-size', default=3, type=int,
+                        help='filter/kernel size on each convolution layer')
     parser.add_argument('--criterion', default='mse', choices=['mse', 'l1'], help='loss criterion.')
     parser.add_argument('--optim', default='adam', help='optimizer name.')
-    parser.add_argument('-l', '--learning-rate', dest='lr', type=int, default=1e-3)
+    parser.add_argument('-l', '--learning-rate', dest='lr', type=float, default=1e-3)
     parser.add_argument('-e', '--epochs', type=int, default=20)
     parser.add_argument('--save-period', type=int, metavar='EPOCH', default=5,
                         help='save model checkpoint after every EPOCH')
