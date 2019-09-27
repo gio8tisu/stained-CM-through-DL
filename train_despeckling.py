@@ -29,7 +29,6 @@ def main(opt):
     transform = transforms.Compose(
         [transforms.RandomCrop(opt.crop_size),
          transforms.ToTensor(),
-         transforms.Lambda(lambda x: x / 255),
          MultiplicativeNoise(**noise_args)  # returns (noisy, clean) tuple
          ]
     )
