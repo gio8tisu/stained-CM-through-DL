@@ -1,6 +1,8 @@
 import os
 import argparse
+
 from torch.utils.data import random_split
+from torchvision import transforms
 
 import datasets
 
@@ -19,6 +21,7 @@ def main(dataset):
 
 
 def save(image, i, split):
+    image *= 255
     file_name = os.path.join(args.output_directory, split, f'{args.prefix}{i}.{args.format}')
     if args.verbose:
         print('Saving crop to ' + file_name, end='\r')
@@ -51,5 +54,8 @@ if __name__ == '__main__':
         os.makedirs(args.output_directory + '/train')
         os.mkdir(args.output_directory + '/test')
 
-    dataset = datasets.CMCropsDataset(args.input_directory, stain=True)
+    dataset = datasets.CMCropsDataset(args.input_directory,
+                                      transform_F=transforms.Lambda(lambda x: x / 255),
+                                      transform_R=transforms.Lambda(lambda x: x / 255),
+                                      stain=True)
     main(dataset)
