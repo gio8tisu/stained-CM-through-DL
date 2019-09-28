@@ -194,7 +194,7 @@ class GeneratorUResNet(nn.Module):
 ##############################
 
 class Discriminator(nn.Module):
-    def __init__(self, in_channels=3):
+    def __init__(self, in_channels=3, discriminator_blocks=4):
         super(Discriminator, self).__init__()
 
         def discriminator_block(in_filters, out_filters, normalize=True):
@@ -205,13 +205,16 @@ class Discriminator(nn.Module):
             layers.append(nn.LeakyReLU(0.2, inplace=True))
             return layers
 
+        n_filters = 64
+        blocks = discriminator_block(in_channels, n_filters, normalize=False)
+        for _ in range(discriminator_blocks - 1):
+            blocks += discriminator_block(n_filters, n_filters * 2)
+            n_filters *= 2
+
         self.model = nn.Sequential(
-            *discriminator_block(in_channels, 64, normalize=False),
-            *discriminator_block(64, 128),
-            *discriminator_block(128, 256),
-            *discriminator_block(256, 512),
+            *blocks,
             nn.ZeroPad2d((1, 0, 1, 0)),
-            nn.Conv2d(512, 1, 4, padding=1)
+            nn.Conv2d(n_filters, 1, 4, padding=1)
         )
 
     def forward(self, img):

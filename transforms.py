@@ -9,11 +9,10 @@ import torchvision.transforms.functional as TF
 class VirtualStainer:
     """Class for digitally staining CM to H&E histology using Daniel S. Gareau technique."""
 
-    def __init__(self):
-        self.H = [0.30, 0.20, 1]
-        self.one_minus_H = list(map(lambda x: 1 - x, self.H))
-        self.E = [1, 0.55, 0.88]
-        self.one_minus_E = list(map(lambda x: 1 - x, self.E))
+    H = [0.30, 0.20, 1]
+    one_minus_H = list(map(lambda x: 1 - x, H))
+    E = [1, 0.55, 0.88]
+    one_minus_E = list(map(lambda x: 1 - x, E))
 
     def __call__(self, sample_R, sample_F):
         """Apply staining transformation and return pyvips image.
