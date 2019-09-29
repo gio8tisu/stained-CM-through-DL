@@ -111,8 +111,8 @@ class CMRandomCrop:
         f_height, f_width = F.size
         assert r_height == f_height
         assert r_width == f_width
-        rand_i = random.randrange(r_height // 2)
-        rand_j = random.randrange(r_width // 2)
+        rand_i = random.randrange(r_height - self.height)
+        rand_j = random.randrange(r_width - self.width)
 
         R = TF.crop(R, rand_i, rand_j, self.height, self.width)
         F = TF.crop(F, rand_i, rand_j, self.height, self.width)
