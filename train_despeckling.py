@@ -25,7 +25,7 @@ def main(opt):
     device = torch.device('cuda') if cuda else torch.device('cpu')
 
     # Define dataset.
-    noise_args = get_noise_args(opt.noise)
+    noise_args = get_noise_args(opt.noise, L=opt.L)
     transform = transforms.Compose(
         [transforms.RandomCrop(opt.crop_size),
          transforms.ToTensor(),
@@ -129,7 +129,7 @@ def main(opt):
         pickle.dump(loss_hist_eval, f, pickle.HIGHEST_PROTOCOL)
 
 
-def get_noise_args(noise):
+def get_noise_args(noise, **kwargs):
     """return dictionary with np.random function and keyword arguments.
 
     :param noise: (str) noise name
@@ -139,7 +139,7 @@ def get_noise_args(noise):
                 'loc': 1, 'scale': 0.1}
     elif noise == 'gamma':
         return {'random_variable': np.random.gamma,
-                'shape': opt.L, 'scale': 1 / opt.L}
+                'shape': kwargs['L'], 'scale': 1 / kwargs['L']}
     elif noise == 'uniform':
         return {'random_variable': np.random.uniform,
                 'low': 1 - 0.3464, 'high': 1 + 0.3464}
