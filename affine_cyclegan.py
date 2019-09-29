@@ -43,17 +43,13 @@ class UnalignedCM2HEDataset(Dataset):
         self.he_dataset = SimpleDataset(he_root, transform=transform_he)
 
         self.cm_to_tensor = CMToTensor()
-        # self.cm_normalize = torchvision.transforms.Normalize((0.5, 0.5), (0.5, 0.5))
         self.he_to_tensor = torchvision.transforms.ToTensor()
-        # self.he_normalize = torchvision.transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
 
     def __getitem__(self, item):
         cm = self.cm_dataset[item % len(self.cm_dataset)]
         cm = self.cm_to_tensor(cm['R'], cm['F'])
-        # cm = self.cm_normalize(cm)
         he = self.he_dataset[random.randrange(len(self.he_dataset))]
         he = self.he_to_tensor(he)
-        # he = self.he_normalize(he)
 
         return {'CM': cm, 'HE': he}
 
@@ -147,7 +143,7 @@ def main(opt):
     # Image transformations
     relation = 0.65
     transforms_HE = torchvision.transforms.Compose([
-        torchvision.transforms.Resize(int(1024 / relation)),
+        torchvision.transforms.Resize(int(1024 * relation)),
         torchvision.transforms.RandomCrop((int(opt.img_height), int(opt.img_width))),
         torchvision.transforms.RandomHorizontalFlip(),
         torchvision.transforms.RandomVerticalFlip()
@@ -158,15 +154,6 @@ def main(opt):
         CMRandomHorizontalFlip(),
         CMRandomVerticalFlip()
     ])
-
-    # val_transforms_HE = [torchvision.transforms.RandomCrop((int(opt.img_height), int(opt.img_width))),
-    #                      transforms.Resize((1024, 1024)),]
-
-    # val_transforms_CM = [torchvision.transforms.RandomCrop((int(opt.img_height), int(opt.img_width))),
-    #                      torchvision.transforms.RandomHorizontalFlip(),
-    #                      torchvision.transforms.RandomVerticalFlip(),
-    #                      torchvision.transforms.ToTensor(),
-    #                      torchvision.transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))]
 
     # Training data loader
     dataset = UnalignedCM2HEDataset(opt.cm_data_root, opt.he_data_root,
@@ -191,7 +178,7 @@ def main(opt):
         # fake_CM = HE_to_CM(real_HE)
         img_sample = torch.cat((fake_HE.data, real_HE.data), 0)
         save_image(img_sample, 'images/%s/%s.png' % (opt.dataset_name, batches_done),
-                   nrow=4, normalize=True)
+                   nrow=4, normalize=False)
 
     # ----------
     #  Training
@@ -324,7 +311,7 @@ if __name__ == '__main__':
     parser.add_argument('--b1', type=float, default=0.5, help='adam: decay of first order momentum of gradient')
     parser.add_argument('--b2', type=float, default=0.999, help='adam: decay of second order momentum of gradient')
     parser.add_argument('--decay-epoch', type=int, default=8, help='epoch from which to start lr decay')
-    parser.add_argument('--lambda-cycle', type=float, default=10., help='cycle loss weight')
+    parser.add_argument('--lambda-cycle', type=float, default=3., help='cycle loss weight')
     parser.add_argument('--img-height', type=int, default=256, help='size of image height')
     parser.add_argument('--img-width', type=int, default=256, help='size of image width')
     parser.add_argument('--sample-interval', type=int, default=100,
