@@ -39,11 +39,6 @@ class AffineGenerator(nn.Module):
 
 class UnalignedCM2HEDataset(Dataset):
     def __init__(self, cm_root, he_root, transform_cm=None, transform_he=None):
-        # self.cm_root = cm_root
-        # self.he_root = he_root
-        # self.transform_cm = transform_cm
-        # self.transform_he = transform_he
-
         self.cm_dataset = CMCropsDataset(cm_root, transform=transform_cm)
         self.he_dataset = SimpleDataset(he_root, transform=transform_he)
 
@@ -60,7 +55,7 @@ class UnalignedCM2HEDataset(Dataset):
         he = self.he_to_tensor(he)
         # he = self.he_normalize(he)
 
-        return {'A': cm, 'B': he}
+        return {'CM': cm, 'HE': he}
 
     def __len__(self):
         return max(len(self.cm_dataset), len(self.he_dataset))
@@ -112,7 +107,6 @@ def main(opt):
         D_HE.load_state_dict(torch.load('saved_models/%s/D_HE_%d.pth' % (opt.dataset_name, opt.epoch)))
     else:
         # Initialize weights
-        CM_to_HE.apply(weights_init_normal)
         HE_to_CM.apply(weights_init_normal)
         D_CM.apply(weights_init_normal)
         D_HE.apply(weights_init_normal)
@@ -147,8 +141,8 @@ def main(opt):
     )
 
     # Buffers of previously generated samples
-    fake_A_buffer = ReplayBuffer()
-    fake_B_buffer = ReplayBuffer()
+    fake_CM_buffer = ReplayBuffer()
+    fake_HE_buffer = ReplayBuffer()
 
     # Image transformations
     relation = 0.65
@@ -189,7 +183,7 @@ def main(opt):
         try:
             imgs = next(iterator)
         except StopIteration:
-            iterator = iter(dataloader)
+            iterator = iter(val_dataloader)
             imgs = next(iterator)
         real_A = imgs['A'].to(device)
         fake_B = CM_to_HE(real_A)
@@ -197,7 +191,7 @@ def main(opt):
         # fake_A = HE_to_CM(real_B)
         img_sample = torch.cat((fake_B.data, real_B.data), 0)
         save_image(img_sample, 'images/%s/%s.png' % (opt.dataset_name, batches_done),
-                   nrow=4, normalize=False)
+                   nrow=4, normalize=True)
 
     # ----------
     #  Training
@@ -208,13 +202,13 @@ def main(opt):
         for i, batch in enumerate(dataloader):
 
             # Set model input
-            real_A = batch['A'].to(device)
-            real_B = batch['B'].to(device)
+            real_cm = batch['CM'].to(device)
+            real_he = batch['HE'].to(device)
 
             # Adversarial ground truths
-            valid = torch.tensor(np.ones((real_A.size(0), *patch)), requires_grad=False,
+            valid = torch.tensor(np.ones((real_cm.size(0), *patch)), requires_grad=False,
                                  device=device, dtype=torch.float)
-            fake = torch.tensor(np.zeros((real_A.size(0), *patch)), requires_grad=False,
+            fake = torch.tensor(np.zeros((real_cm.size(0), *patch)), requires_grad=False,
                                 device=device, dtype=torch.float)
 
             # ------------------
@@ -225,18 +219,18 @@ def main(opt):
             optimizer_CM_to_HE.zero_grad()
 
             # GAN loss
-            fake_B = CM_to_HE(real_A)
-            loss_GAN_AB = criterion_GAN(D_HE(fake_B), valid)
-            fake_A = HE_to_CM(real_B)
-            loss_GAN_BA = criterion_GAN(D_CM(fake_A), valid)
+            fake_he = CM_to_HE(real_cm)
+            loss_GAN_AB = criterion_GAN(D_HE(fake_he), valid)
+            fake_cm = HE_to_CM(real_he)
+            loss_GAN_BA = criterion_GAN(D_CM(fake_cm), valid)
 
             loss_GAN = (loss_GAN_AB + loss_GAN_BA) / 2
 
             # Cycle loss
-            recov_A = HE_to_CM(fake_B)
-            loss_cycle_A = criterion_cycle(recov_A, real_A)
-            recov_B = CM_to_HE(fake_A)
-            loss_cycle_B = criterion_cycle(recov_B, real_B)
+            recov_cm = HE_to_CM(fake_he)
+            loss_cycle_A = criterion_cycle(recov_cm, real_cm)
+            recov_he = CM_to_HE(fake_cm)
+            loss_cycle_B = criterion_cycle(recov_he, real_he)
 
             loss_cycle = (loss_cycle_A + loss_cycle_B) / 2
 
@@ -254,9 +248,9 @@ def main(opt):
             optimizer_D_HE.zero_grad()
 
             # Real loss
-            loss_real = criterion_GAN(D_CM(real_A), valid)
+            loss_real = criterion_GAN(D_CM(real_cm), valid)
             # Fake loss (on batch of previously generated samples)
-            fake_A_ = fake_A_buffer.push_and_pop(fake_A)
+            fake_A_ = fake_CM_buffer.push_and_pop(fake_cm)
             loss_fake = criterion_GAN(D_CM(fake_A_.detach()), fake)
             # Total loss
             loss_D_A = (loss_real + loss_fake) / 2
@@ -271,9 +265,9 @@ def main(opt):
             optimizer_D_CM.zero_grad()
 
             # Real loss
-            loss_real = criterion_GAN(D_HE(real_B), valid)
+            loss_real = criterion_GAN(D_HE(real_he), valid)
             # Fake loss (on batch of previously generated samples)
-            fake_B_ = fake_B_buffer.push_and_pop(fake_B)
+            fake_B_ = fake_HE_buffer.push_and_pop(fake_he)
             loss_fake = criterion_GAN(D_HE(fake_B_.detach()), fake)
             # Total loss
             loss_D_B = (loss_real + loss_fake) / 2
