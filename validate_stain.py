@@ -144,10 +144,11 @@ def lbp_main(args):
             np.save(args.output + '_ref', result_ref)
             # Write a file with window descriptions.
             with open(args.output + '_windows.csv', 'w') as f:
-                f.write('row,col,lbp-histogram-distance')
-                print('row', 'col', 'lbp-histogram-distance', sep=',', file=f)
-                for i, j in product(range(distances.shape[0]), range(distances.shape[1])):
-                    print(i, j, distances[i, j], sep=',', file=f)
+                print('crop-num', 'row', 'col',
+                      'histogram-' + args.histogram_distance + '-distance',
+                      sep=',', file=f)
+                for n, (i, j) in enumerate(product(range(distances.shape[0]), range(distances.shape[1]))):
+                    print(n, i, j, distances[i, j], sep=',', file=f)
 
         return result, result_ref
     return result
