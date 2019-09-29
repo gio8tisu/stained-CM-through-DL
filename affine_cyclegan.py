@@ -112,9 +112,9 @@ def main(opt):
 
     # Optimizers
     optimizer_CM_to_HE = torch.optim.Adam(CM_to_HE.parameters(),
-                                          lr=opt.lr / 10, betas=(opt.b1, opt.b2))
+                                          lr=opt.lr / 2, betas=(opt.b1, opt.b2))
     optimizer_HE_to_CM = torch.optim.Adam(HE_to_CM.parameters(),
-                                          lr=opt.lr / 10, betas=(opt.b1, opt.b2))
+                                          lr=opt.lr, betas=(opt.b1, opt.b2))
     optimizer_D_HE = torch.optim.Adam(D_CM.parameters(), lr=opt.lr, betas=(opt.b1, opt.b2))
     optimizer_D_CM = torch.optim.Adam(D_HE.parameters(), lr=opt.lr, betas=(opt.b1, opt.b2))
 
@@ -307,11 +307,11 @@ if __name__ == '__main__':
     parser.add_argument('--he-data-root', required=True, help='HE dataset path')
     parser.add_argument('--discriminator-blocks', type=int, default=2, help='number of discriminator blocks')
     parser.add_argument('--batch-size', type=int, default=8, help='size of the batches')
-    parser.add_argument('--lr', type=float, default=0.001, help='adam: learning rate')
+    parser.add_argument('--lr', type=float, default=0.0005, help='adam: learning rate')
     parser.add_argument('--b1', type=float, default=0.5, help='adam: decay of first order momentum of gradient')
     parser.add_argument('--b2', type=float, default=0.999, help='adam: decay of second order momentum of gradient')
     parser.add_argument('--decay-epoch', type=int, default=8, help='epoch from which to start lr decay')
-    parser.add_argument('--lambda-cycle', type=float, default=3., help='cycle loss weight')
+    parser.add_argument('--lambda-cycle', type=float, default=5., help='cycle loss weight')
     parser.add_argument('--img-height', type=int, default=256, help='size of image height')
     parser.add_argument('--img-width', type=int, default=256, help='size of image width')
     parser.add_argument('--sample-interval', type=int, default=100,
