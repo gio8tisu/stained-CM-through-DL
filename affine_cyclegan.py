@@ -185,11 +185,11 @@ def main(opt):
         except StopIteration:
             iterator = iter(val_dataloader)
             imgs = next(iterator)
-        real_A = imgs['A'].to(device)
-        fake_B = CM_to_HE(real_A)
-        real_B = imgs['B'].to(device)
-        # fake_A = HE_to_CM(real_B)
-        img_sample = torch.cat((fake_B.data, real_B.data), 0)
+        real_CM = imgs['CM'].to(device)
+        fake_HE = CM_to_HE(real_CM)
+        real_HE = imgs['HE'].to(device)
+        # fake_CM = HE_to_CM(real_HE)
+        img_sample = torch.cat((fake_HE.data, real_HE.data), 0)
         save_image(img_sample, 'images/%s/%s.png' % (opt.dataset_name, batches_done),
                    nrow=4, normalize=True)
 
