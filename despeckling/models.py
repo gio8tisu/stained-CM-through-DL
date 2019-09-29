@@ -1,10 +1,7 @@
 from __future__ import print_function, division
 
 import torch.nn as nn
-import torch.nn.functional as F
 import torch
-
-import sys
 
 SAFE_LOG_EPSILON = 1E-5  # small number to avoid log(0).
 SAFE_DIV_EPSILON = 1E-5  # small number to avoid division by zero.
@@ -60,12 +57,14 @@ class DilatedConv(nn.Module):
 
     def __init__(self, in_channels=1, n_layers=6, n_filters=64, kernel_size=3):
         super(DilatedConv, self).__init__()
-        model = [nn.Sequential(nn.Conv2d(in_channels, n_filters, kernel_size, padding=2, dilation=2),
+        model = [nn.Sequential(nn.Conv2d(in_channels, n_filters, kernel_size,
+                                         padding=kernel_size // 2 * 2, dilation=2),
                                nn.BatchNorm2d(n_filters),
                                nn.PReLU())
                  ]
         for _ in range(n_layers - 1):
-            model += [nn.Sequential(nn.Conv2d(n_filters, n_filters, kernel_size, padding=2, dilation=2),
+            model += [nn.Sequential(nn.Conv2d(n_filters, n_filters, kernel_size,
+                                              padding=kernel_size // 2 * 2, dilation=2),
                                     nn.BatchNorm2d(n_filters),
                                     nn.PReLU())
                       ]
@@ -79,46 +78,58 @@ class DilatedConv(nn.Module):
 class LogAddDespeckle(nn.Module):
     """Apply log to pixel values, residual block with addition, apply exponential."""
 
-    def __init__(self, n_layers=6, n_filters=64, kernel_size=3):
+    def __init__(self, n_layers=6, n_filters=64, kernel_size=3, apply_sigmoid=True):
         super(LogAddDespeckle, self).__init__()
         conv = BasicConv(in_channels=1, n_layers=n_layers, n_filters=n_filters,
                          kernel_size=kernel_size)
         self.remove_noise = ResModel(conv, skip_connection=lambda x, y: x + y)
+        self.apply_sigmoid = apply_sigmoid
 
     def forward(self, x):
         log_x = (x + SAFE_LOG_EPSILON).log()
         clean_log_x = self.remove_noise(log_x)
-        return clean_log_x.exp()
+        clean_x = clean_log_x.exp()
+        if self.apply_sigmoid:
+            return torch.sigmoid(clean_x)
+        return clean_x
 
 
 class DilatedLogAddDespeckle(nn.Module):
     """Apply log to pixel values, residual block with addition, apply exponential."""
 
-    def __init__(self, n_layers=6, n_filters=64, kernel_size=3):
+    def __init__(self, n_layers=6, n_filters=64, kernel_size=3, apply_sigmoid=True):
         super(DilatedLogAddDespeckle, self).__init__()
         conv = DilatedConv(in_channels=1, n_layers=n_layers, n_filters=n_filters,
                            kernel_size=kernel_size)
         self.remove_noise = ResModel(conv, skip_connection=lambda x, y: x + y)
+        self.apply_sigmoid = apply_sigmoid
 
     def forward(self, x):
         log_x = (x + SAFE_LOG_EPSILON).log()
         clean_log_x = self.remove_noise(log_x)
-        return clean_log_x.exp()
+        clean_x = clean_log_x.exp()
+        if self.apply_sigmoid:
+            return torch.sigmoid(clean_x)
+        return clean_x
 
 
 class LogSubtractDespeckle(nn.Module):
     """Apply log to pixel values, residual block with subtraction, apply exponential."""
 
-    def __init__(self, n_layers=6, n_filters=64, kernel_size=3):
+    def __init__(self, n_layers=6, n_filters=64, kernel_size=3, sigmoid=True):
         super(LogSubtractDespeckle, self).__init__()
         conv = BasicConv(in_channels=1, n_layers=n_layers, n_filters=n_filters,
                          kernel_size=kernel_size)
         self.remove_noise = ResModel(conv, skip_connection=lambda x, y: x - y)
+        self.sigmoid = sigmoid
 
     def forward(self, x):
         log_x = (x + SAFE_LOG_EPSILON).log()
         clean_log_x = self.remove_noise(log_x)
-        return clean_log_x.exp()
+        clean_x = clean_log_x.exp()
+        if self.sigmoid:
+            return torch.sigmoid(clean_x)
+        return clean_x
 
 
 class MultiplyDespeckle(nn.Module):
