@@ -12,23 +12,28 @@ def main(dataset):
         scan = dataset[i]  # dictionary with keys 'F' and 'R'
         if args.verbose:
             print('Cropping image {} of {}'.format(i + 1, len(dataset)))
-        y_x = product(range(0, scan['F'].height - size - 1, args.step),
-                      range(0, scan['F'].width - size - 1, args.step))
-        for y_pos, x_pos in tqdm.tqdm(y_x):
-            for mode, s in scan.items():
-                tile_scan = s.crop(x_pos, y_pos, size, size)  # "grab" square window/patch from image.
-                if args.discard:
-                    avg = tile_scan.avg()
-                    if avg < 2000:
-                        if args.verbose:
-                            print(f'Discarding crop {y_pos}-{x_pos} with mean pixel value of {avg}.')
-                        break
-                save(tile_scan, i, x_pos, y_pos, mode)
+        with tqdm.tqdm() as pbar:
+            y_pos = 0
+            while y_pos < scan['F'].height - size - 1:
+                x_pos = 0
+                while x_pos < scan['F'].width - size - 1:
+                    for mode, s in scan.items():
+                        tile_scan = s.crop(x_pos, y_pos, size, size)  # "grab" square window/tile from image.
+                        if args.discard:
+                            avg = tile_scan.avg()
+                            if avg < 3000:
+                                if args.verbose:
+                                    print(f'Discarding crop {y_pos}-{x_pos} with mean pixel value of {avg}.')
+                                break
+                        save(tile_scan, i, x_pos, y_pos, mode, args.prefix, args.format)
+                    x_pos += args.step
+                    pbar.update()
+                y_pos += args.step
     print('Done.')
 
 
-def save(image, i, x, y, mode):
-    file_name = os.path.join(args.output_directory, f'{args.prefix}{i}_{y}-{x}_{mode}.{args.format}')
+def save(image, i, x, y, mode, prefix='', format_='tiff'):
+    file_name = os.path.join(args.output_directory, f'{prefix}{i}_{y}-{x}_{mode}.{format_}')
     if args.verbose:
         print('Saving crop to ' + file_name, end='\r')
     if args.compression:
