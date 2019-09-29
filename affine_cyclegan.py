@@ -320,7 +320,7 @@ if __name__ == '__main__':
     parser.add_argument('--he-data-root', required=True, help='HE dataset path')
     parser.add_argument('--discriminator-blocks', type=int, default=2, help='number of discriminator blocks')
     parser.add_argument('--batch-size', type=int, default=8, help='size of the batches')
-    parser.add_argument('--lr', type=float, default=0.0001, help='adam: learning rate')
+    parser.add_argument('--lr', type=float, default=0.001, help='adam: learning rate')
     parser.add_argument('--b1', type=float, default=0.5, help='adam: decay of first order momentum of gradient')
     parser.add_argument('--b2', type=float, default=0.999, help='adam: decay of second order momentum of gradient')
     parser.add_argument('--decay-epoch', type=int, default=8, help='epoch from which to start lr decay')
