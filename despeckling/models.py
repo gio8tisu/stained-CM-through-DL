@@ -116,18 +116,18 @@ class DilatedLogAddDespeckle(nn.Module):
 class LogSubtractDespeckle(nn.Module):
     """Apply log to pixel values, residual block with subtraction, apply exponential."""
 
-    def __init__(self, n_layers=6, n_filters=64, kernel_size=3, sigmoid=True):
+    def __init__(self, n_layers=6, n_filters=64, kernel_size=3, apply_sigmoid=True):
         super(LogSubtractDespeckle, self).__init__()
         conv = BasicConv(in_channels=1, n_layers=n_layers, n_filters=n_filters,
                          kernel_size=kernel_size)
         self.remove_noise = ResModel(conv, skip_connection=lambda x, y: x - y)
-        self.sigmoid = sigmoid
+        self.apply_sigmoid = apply_sigmoid
 
     def forward(self, x):
         log_x = (x + SAFE_LOG_EPSILON).log()
         clean_log_x = self.remove_noise(log_x)
         clean_x = clean_log_x.exp()
-        if self.sigmoid:
+        if self.apply_sigmoid:
             return torch.sigmoid(clean_x)
         return clean_x
 
@@ -135,29 +135,35 @@ class LogSubtractDespeckle(nn.Module):
 class MultiplyDespeckle(nn.Module):
     """Residual block with multiplication."""
 
-    def __init__(self, n_layers=6, n_filters=64, kernel_size=3):
+    def __init__(self, n_layers=6, n_filters=64, kernel_size=3, apply_sigmoid=True):
         super(MultiplyDespeckle, self).__init__()
         conv = BasicConv(in_channels=1, n_layers=n_layers, n_filters=n_filters,
                          kernel_size=kernel_size)
         self.remove_noise = ResModel(conv, skip_connection=lambda x, y: x * y)
-        self.last_activation = nn.Sequential(nn.BatchNorm2d(1), nn.Sigmoid())
+        self.apply_sigmoid = apply_sigmoid
 
     def forward(self, x):
         clean_x = self.remove_noise(x)
-        return self.last_activation(clean_x)
+        if self.apply_sigmoid:
+            return torch.sigmoid(clean_x)
+        return clean_x
 
 
 class DivideDespeckle(nn.Module):
     """Residual block with division."""
 
-    def __init__(self, n_layers=6, n_filters=64, kernel_size=3):
+    def __init__(self, n_layers=6, n_filters=64, kernel_size=3, apply_sigmoid=True):
         super(DivideDespeckle, self).__init__()
         conv = BasicConv(in_channels=1, n_layers=n_layers, n_filters=n_filters,
                          kernel_size=kernel_size)
-        self.remove_noise = ResModel(conv,
-                                     skip_connection=lambda x, y: x / (y + SAFE_DIV_EPSILON))
-        self.last_activation = nn.Sequential(nn.BatchNorm2d(1), nn.Sigmoid())
+        self.remove_noise = ResModel(
+            conv,
+            skip_connection=lambda x, y: x / (y + SAFE_DIV_EPSILON)
+        )
+        self.apply_sigmoid = apply_sigmoid
 
     def forward(self, x):
         clean_x = self.remove_noise(x)
-        return self.last_activation(clean_x)
+        if self.apply_sigmoid:
+            return torch.sigmoid(clean_x)
+        return clean_x

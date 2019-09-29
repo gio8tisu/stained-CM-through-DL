@@ -15,7 +15,6 @@ from datasets import CMCropsDataset
 from despeckling import models
 from transforms import MultiplicativeNoise
 
-# torch.backends.cudnn.enabled = False
 torch.manual_seed(0)
 np.random.seed(0)
 
@@ -42,7 +41,8 @@ def main(opt):
     val_dataloader = DataLoader(val_dataset, batch_size=opt.batch_size, num_workers=4)
 
     # Define model and loss criterion.
-    model = get_model(opt.model, opt.layers, opt.filters, opt.filters_size)
+    model = get_model(opt.model, opt.layers, opt.filters, opt.filters_size,
+                      apply_sigmoid=not opt.no_sigmoid)
     if opt.criterion == 'mse':
         criterion = MSELoss()
     elif opt.criterion == 'l1':
@@ -55,7 +55,7 @@ def main(opt):
     if opt.optim == 'adam':
         optimizer = Adam(params=model.parameters(), lr=opt.lr)
     else:
-        raise NotImplementedError(opt.optim + 'optimizer is not supported.')
+        raise NotImplementedError(opt.optim + ' optimizer is not supported.')
 
     # Training process.
     loss_hist = list()  # list of (epoch, train loss)
@@ -111,7 +111,8 @@ def main(opt):
 
                 if opt.verbose:
                     input_and_target.set_description(
-                        'Output loss = {0:.3f}'.format(loss)
+                        'Validation: '
+                        + 'Output loss = {0:.3f}'.format(loss)
                         + ' Input loss = {0:.3f}'.format(prev_loss_eval)
                         + ' Input SSIM = {0:.3f}'.format(ssim_input)
                         + ' Output SSIM = {0:.3f}'.format(ssim_output))
@@ -199,6 +200,7 @@ if __name__ == '__main__':
                         help='number of filters on each convolution layer.')
     parser.add_argument('--filters-size', default=3, type=int,
                         help='filter/kernel size on each convolution layer')
+    parser.add_argument('--no-sigmoid', action='store_true', help='no sigmoid activation in final layer')
     parser.add_argument('--criterion', default='mse', choices=['mse', 'l1'], help='loss criterion.')
     parser.add_argument('--optim', default='adam', help='optimizer name.')
     parser.add_argument('-l', '--learning-rate', dest='lr', type=float, default=1e-3)
