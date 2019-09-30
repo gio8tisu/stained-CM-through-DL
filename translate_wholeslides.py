@@ -25,12 +25,18 @@ def main(args, dataset, G_AB, transform, numpy2vips):
         if args.verbose:
             print('Transforming image {} of {} ({})'.format(i + 1, len(dataset), prefix))
         image = None
-        for x_pos in tqdm.trange(0, scan.width - size - 1, size):
-            ver_image = None
-            for y_pos in range(0, scan.height - size - 1, size):
-                res = transform_tile(G_AB, scan, size, transform, x_pos, y_pos, device, numpy2vips)
-                ver_image = res if not ver_image else ver_image.join(res, 'vertical')  # "stack" vertically
-            image = ver_image if not image else image.join(ver_image, 'horizontal')  # "stack" horizontally
+        with tqdm.tqdm() as pbar:
+            x_pos = 0
+            while x_pos < scan.width - size - 1:
+                ver_image = None
+                y_pos = 0
+                while y_pos < scan.height - size - 1:
+                    res = transform_tile(G_AB, scan, size, transform, x_pos, y_pos, device, numpy2vips)
+                    ver_image = res if not ver_image else ver_image.join(res, 'vertical')  # "stack" vertically
+                    y_pos += size
+                    pbar.update()
+                image = ver_image if not image else image.join(ver_image, 'horizontal')  # "stack" horizontally
+                x_pos += size
         if args.save_linear:
             save(args, i, image, scan)
         else:
