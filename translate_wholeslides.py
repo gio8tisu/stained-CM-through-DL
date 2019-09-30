@@ -7,7 +7,6 @@ import torch
 import torchvision.transforms
 import tqdm
 
-import cyclegan.models
 import numpy_pyvips
 from datasets import SkinCMDataset
 from utils import TileMosaic, pad_image
@@ -144,26 +143,34 @@ def scale(img, s=65535):
     return img / s
 
 
+def get_affine_model(args):
+    import affine_cyclegan
+    return affine_cyclegan.AffineGenerator(2, 3)
+
+
+def get_resnet_model(args):
+    import cyclegan.models
+    return cyclegan.models.GeneratorResNet(res_blocks=args.n_blocks)
+
+
 if __name__ == '__main__':
     import argparse
 
     parser = argparse.ArgumentParser(description='Transform CM whole-slides to H&E.',
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('data_directory', type=str, help='directory with mosaic* directories')
-    parser.add_argument('--models-dir', required=True, help='directory with saved models')
+    parser.add_argument('--model-path', required=True, help='directory with saved models')
     parser.add_argument('-o', '--output', required=True, help='output directory')
     parser.add_argument('--prefix', default='scan', help='output files prefix PREFIX')
     format_group = parser.add_mutually_exclusive_group()
     format_group.add_argument('--format', default='jpg', help='output image format')
     format_group.add_argument('--compression', action='store_true', help='apply JPEG compression (with Q=90).')
-    parser.add_argument('--epoch', type=int, default=199, help='epoch to get model from.')
     parser.add_argument('--patch-size', type=int, default=2048, help='size in pixels of patch/window.')
     parser.add_argument('--crop-size', type=int,
                         help='Crop size after transform, only used with --overlap option'
                              + ' (if None, fallback to PATCH_SIZE // 2 + 1)')
     parser.add_argument('--step', type=int,
                         help='Step size between patches. (if None, fallback to CROP_SIZE / 2')
-    parser.add_argument('--dataset-name', type=str, default='conf_data6', help='name of the saved model dataset.')
     parser.add_argument('--save-linear', action='store_true',
                         help="save linearly stained image (input of model) to '*_linear_*'.")
     parser.add_argument('--overlap', action='store_true',
@@ -180,6 +187,13 @@ if __name__ == '__main__':
     parser.add_argument('--debug', action='store_true')
     parser.add_argument('--no-cuda', action='store_true', help='do not use GPU')
     parser.add_argument('--no-pyvips-tiles', action='store_true', help='do not use pyvips in tile creation')
+    subparsers = parser.add_subparsers(title='model-type', dest='model_type')
+    affine_parser = subparsers.add_parser('affine')
+    affine_parser.set_defaults(get_model=get_affine_model)
+    resnet_parser = subparsers.add_parser('resnet')
+    resnet_parser.set_defaults(get_model=get_resnet_model)
+    resnet_parser.add_argument('--n-blocks', type=int, default=9,
+                               help='number of residual blocks in generator')
 
     args = parser.parse_args()
     if args.verbose:
@@ -207,29 +221,32 @@ if __name__ == '__main__':
     numpy2vips = numpy_pyvips.Numpy2Vips() if not args.no_pyvips_tiles else None
 
     # transform to apply patch-by-patch.
-    patch_transform = torchvision.transforms.Compose(
-        [numpy_pyvips.Vips2Numpy(),
-         torchvision.transforms.ToTensor(),
-         torchvision.transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
-         ]
-    )
-    # dataset of confocal large slides.
-    dataset = SkinCMDataset(
-        args.data_directory, stain=True,
-        transform_F=torchvision.transforms.Lambda(normalize if args.normalize else scale),
-        transform_R=torchvision.transforms.Lambda(normalize if args.normalize else scale),
-        transform=transforms.CMMinMaxNormalizer(args.normalization_method) if args.normalization_method else None,
-        return_prefix=True
-    )
+    if args.model_type == 'resnet':
+        patch_transform = torchvision.transforms.Compose(
+            [numpy_pyvips.Vips2Numpy(),
+             torchvision.transforms.ToTensor(),
+             torchvision.transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+             ]
+        )
+    else:
+        pass
+    if args.model_type == 'resnet':
+        # dataset of confocal large slides.
+        dataset = SkinCMDataset(
+            args.data_directory, stain=True,
+            transform_F=torchvision.transforms.Lambda(normalize if args.normalize else scale),
+            transform_R=torchvision.transforms.Lambda(normalize if args.normalize else scale),
+            transform=transforms.CMMinMaxNormalizer(args.normalization_method) if args.normalization_method else None,
+            return_prefix=True
+        )
+    else:
+        pass
 
-    G_AB = cyclegan.models.GeneratorResNet(res_blocks=9)
+    G_AB = args.get_model(args)
     if cuda:
         G_AB = G_AB.cuda()
     # load model parameters using dataset_name and epoch number from CLI.
-    G_AB.load_state_dict(torch.load(
-        os.path.join(args.models_dir, args.dataset_name, f'G_AB_{args.epoch}.pth'),
-        map_location=device
-    ))
+    G_AB.load_state_dict(torch.load(args.model_path, map_location=device))
 
     G_AB.eval()  # use evaluation/validation mode.
     with torch.no_grad():  # to avoid autograd overhead.
