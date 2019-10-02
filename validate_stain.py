@@ -1,5 +1,7 @@
-import os.path
+#!/usr/bin/env python
+
 from itertools import product
+import os.path
 
 import numpy as np
 import pyvips
@@ -102,8 +104,12 @@ def lbp_main(args):
         assert scan.height == reference.height and scan.width == reference.width
         reference = reference.colourspace('b-w')
 
-    cols = range(0, scan.width - args.window_size - 1, args.step)
-    rows = range(0, scan.height - args.window_size - 1, args.step)
+    # The step equals to scan's width and height if window-size argument
+    # is equal to -1 so range() only yields a 0.
+    cols = range(0, scan.width - args.window_size - 1,
+                 args.step if args.window_size != -1 else scan.width)
+    rows = range(0, scan.height - args.window_size - 1,
+                 args.step if args.window_size != -1 else scan.height)
     result = np.empty((len(rows), len(cols), 2 ** args.points))
     if args.reference:
         result_ref = np.empty((len(rows), len(cols), 2 ** args.points))
@@ -114,6 +120,7 @@ def lbp_main(args):
                 # "Grab" window and apply pre-processing.
                 array = preprocess(
                     scan.crop(x_pos, y_pos, args.window_size, args.window_size)
+                    if args.window_size != -1 else scan
                 )
                 # Compute texture descriptors.
                 lbp, hist = compute_lbp_histogram(array,
@@ -125,6 +132,7 @@ def lbp_main(args):
                     array_ref = preprocess(
                         reference.crop(x_pos, y_pos,
                                        args.window_size, args.window_size)
+                        if args.window_size != -1 else reference
                     )
                     lbp, hist = compute_lbp_histogram(array_ref,
                                                       args.points, args.radius)
@@ -138,7 +146,7 @@ def lbp_main(args):
         # Get function to compute histogram distances and compute them.
         dist_func = define_histogram_distance(args.histogram_distance)
         distances = dist_func(result, result_ref, axis=2)
-        print('global distance:', np.linalg.norm(result - result_ref))
+        print('global (L2) distance:', np.linalg.norm(result - result_ref))
         print('average distance:', np.mean(distances))
         if args.output:
             np.save(args.output + '_ref', result_ref)
@@ -165,8 +173,12 @@ def ssim_main(args):
     scan = scan.colourspace('b-w')
     reference = reference.colourspace('b-w')
 
-    cols = range(0, scan.width - args.window_size - 1, args.step)
-    rows = range(0, scan.height - args.window_size - 1, args.step)
+    # The step equals to scan's width and height if window-size argument
+    # is equal to -1 so range() only yields a 0.
+    cols = range(0, scan.width - args.window_size - 1,
+                 args.step if args.window_size != -1 else scan.width)
+    rows = range(0, scan.height - args.window_size - 1,
+                 args.step if args.window_size != -1 else scan.height)
     result = np.empty((len(rows), len(cols)))
     with tqdm.tqdm(total=len(cols) * len(rows)) as pbar:
         for row, y_pos in enumerate(rows):
@@ -174,10 +186,11 @@ def ssim_main(args):
                 # "Grab" window and apply pre-processing.
                 array = preprocess(
                     scan.crop(x_pos, y_pos, args.window_size, args.window_size)
+                    if args.window_size != -1 else scan
                 )
                 array_ref = preprocess(
-                    reference.crop(x_pos, y_pos,
-                                   args.window_size, args.window_size)
+                    reference.crop(x_pos, y_pos, args.window_size, args.window_size)
+                    if args.window_size != -1 else reference
                 )
                 # Compute texture descriptors.
                 ssim = compare_ssim(array, array_ref)
@@ -268,7 +281,8 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('input', type=str, help='path to input image')
     parser.add_argument('-o', '--output', required=False, help='output filename')
-    parser.add_argument('--window-size', type=int, default=513, help='size in pixels of window')
+    parser.add_argument('--window-size', type=int, default=513,
+                        help='size in pixels of window (if -1 do not use windows')
     parser.add_argument('--step', type=int, help='Step size between windows')
     parser.add_argument('--pad', action='store_true', help='pad image with WINDOW_SIZE // 2 on each side')
     parser.add_argument('-v', '--verbose', action='store_true')
@@ -293,6 +307,8 @@ if __name__ == '__main__':
     args = parser.parse_args()
     if args.verbose:
         print(args)
+
+    assert not os.path.exists(args.output)
 
     # To transform from vips to numpy array.
     vips2numpy = Vips2Numpy.vips2numpy
