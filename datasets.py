@@ -299,13 +299,15 @@ class NoisyCMCropsDataset(CMCropsDataset):
 class SimpleDataset(torch.utils.data.Dataset):
     EXTENSIONS = ['.png', '.jpg', '.tif']
 
-    def __init__(self, root_dir, transform=None):
+    def __init__(self, root_dir, transform=None, return_prefix=False):
         self.root_dir = pathlib.Path(root_dir)
         self.files = [file for file in self.root_dir.glob('*.*')
                       if file.suffix in self.EXTENSIONS]
 
         self.transform = transform
+        self.return_prefix = return_prefix
 
+    @return_prefix_decorator
     def __getitem__(self, item):
         img = Image.open(self.files[item])
         if self.transform:
@@ -314,3 +316,6 @@ class SimpleDataset(torch.utils.data.Dataset):
 
     def __len__(self):
         return len(self.files)
+
+    def get_prefix(self, item):
+        return os.path.basename(self.files[item])
