@@ -308,7 +308,8 @@ if __name__ == '__main__':
     if args.verbose:
         print(args)
 
-    assert not os.path.exists(args.output)
+    if args.output:
+        assert not os.path.exists(args.output)
 
     # To transform from vips to numpy array.
     vips2numpy = Vips2Numpy.vips2numpy
