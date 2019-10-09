@@ -8,17 +8,3 @@ venv
 *.swp
 
 data
-main.aux
-*.acn
-*.acr
-*.alg
-*.aux
-*.bbl
-*.bcf
-*.blg
-*.ist
-*.lof
-*.lot
-*.out
-*.run.xml
-*.toc
