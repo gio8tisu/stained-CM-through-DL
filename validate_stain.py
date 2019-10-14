@@ -204,7 +204,6 @@ def ssim_main(args):
         np.save(args.output, result)
         # Write a file with window descriptions.
         with open(args.output + '_windows.csv', 'w') as f:
-            f.write('row,col,ssim')
             print('row', 'col', 'ssim', sep=',', file=f)
             for i, j in product(range(result.shape[0]), range(result.shape[1])):
                 print(i, j, result[i, j], sep=',', file=f)
