@@ -44,10 +44,14 @@ def main(args):
     )
 
     # Define model.
-    G_AB = cyclegan.models.GeneratorResNet(res_blocks=9).to(device)
-    # load model parameters using dataset_name and epoch number from CLI.
-    G_AB.load_state_dict(torch.load(args.model, map_location=device))
-    G_AB.eval()  # use evaluation/validation mode.
+    if args.unet:
+        G_AB = cyclegan.models.GeneratorUNet()
+    else:
+        G_AB = cyclegan.models.GeneratorResNet(res_blocks=args.n_residual_blocks)
+    G_AB.to(device)
+    G_AB.load_state_dict(torch.load(args.model_path, map_location=device))
+    G_AB.eval()
+
 
     size = args.patch_size
     crop = args.crop_size if args.crop_size else size // 2 + 1
@@ -101,6 +105,8 @@ if __name__ == '__main__':
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('mosaic_directory', type=str, help='path to mosaic directory')
     parser.add_argument('--model', required=True, help='path to model')
+    parser.add_argument('--n-residual-blocks', type=int, default=9, help='number of residual blocks in generator')
+    parser.add_argument('--unet', action='store_true', help='unet generator')
     parser.add_argument('-o', '--output', required=True, help='output file name without extension')
     format_group = parser.add_mutually_exclusive_group()
     format_group.add_argument('--format', default='jpg', help='output image format')

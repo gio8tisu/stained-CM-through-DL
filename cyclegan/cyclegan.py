@@ -97,7 +97,7 @@ def main(opt):
     fake_B_buffer = ReplayBuffer()
 
     # Image transformations
-    relation = 0.65
+    relation = 0.62
 
     # Image transformations
     transforms_B = [transforms.RandomCrop((int(opt.img_height), int(opt.img_width))),
