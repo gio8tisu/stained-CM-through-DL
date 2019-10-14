@@ -150,13 +150,18 @@ def scale(img, s=65535):
 
 
 def get_affine_model(args):
-    import affine_cyclegan
-    return affine_cyclegan.AffineGenerator(2, 3)
+    from affine_cyclegan import AffineGenerator
+    return AffineGenerator(2, 3)
 
 
 def get_resnet_model(args):
-    import cyclegan.models
-    return cyclegan.models.GeneratorResNet(res_blocks=args.n_blocks)
+    from cyclegan.models import GeneratorResNet
+    return GeneratorResNet(res_blocks=args.n_blocks)
+
+
+def get_unet_model(args):
+    from cyclegan.models import GeneratorUNet
+    return GeneratorUNet()
 
 
 if __name__ == '__main__':
@@ -196,6 +201,8 @@ if __name__ == '__main__':
     subparsers = parser.add_subparsers(title='model-type', dest='model_type')
     affine_parser = subparsers.add_parser('affine')
     affine_parser.set_defaults(get_model=get_affine_model)
+    affine_parser = subparsers.add_parser('unet')
+    affine_parser.set_defaults(get_model=get_unet_model)
     resnet_parser = subparsers.add_parser('resnet')
     resnet_parser.set_defaults(get_model=get_resnet_model)
     resnet_parser.add_argument('--n-blocks', type=int, default=9,
@@ -227,7 +234,7 @@ if __name__ == '__main__':
     numpy2vips = numpy_pyvips.Numpy2Vips() if not args.no_pyvips_tiles else None
 
     # transform to apply patch-by-patch.
-    if args.model_type == 'resnet':
+    if args.model_type in ['resnet', 'unet']:
         patch_transform = torchvision.transforms.Compose(
             [numpy_pyvips.Vips2Numpy(),
              torchvision.transforms.ToTensor(),
@@ -236,7 +243,7 @@ if __name__ == '__main__':
         )
     else:
         pass
-    if args.model_type == 'resnet':
+    if args.model_type in ['resnet', 'unet']:
         # dataset of confocal large slides.
         dataset = SkinCMDataset(
             args.data_directory, stain=True,
