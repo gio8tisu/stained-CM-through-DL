@@ -19,14 +19,45 @@ class TileMosaic:
         tiles (List[pyvips.Image]) - list with tiles (first index corresponds to row).
         num_h (int) - number of "vertical" tiles.
         num_w (int) - number of "horizontal" tiles.
+
+    Use add_tile to add tiles to specific location and get_mosaic to generate
+    and obtain resulting mosaic.
+
+    Example
+    -------
+        scan = pyvips.Image.new_from_file(input_filename)
+
+        size = 2048
+        crop = 1024
+        step = 512
+
+        tiles = TileMosaic(scan, "pyramid", size, crop)
+
+        scan = pad_image(scan, size // 2)
+
+        y_pos = 0
+        while y_pos < scan.height - size - 1:
+            x_pos = 0
+            while x_pos < scan.width - size - 1:
+                res = ...  # do appropriate transform/processing.
+                tiles.add_tile(res, x_pos, y_pos)
+                x_pos += step
+            y_pos += step
+        transformed = tiles.get_mosaic()
+
+        transformed.write_to_file(output_filename)
     """
 
     def __init__(self, original, window_type=0.25, tile_shape=(2048, 2048),
                  center_crop=None, pyvips_tiles=True):
         """Constructor.
 
-        :param original: original image, padded by tile_shape / 2.
-        :type original: pyvips.Image
+        :arg original: original image, padded by tile_shape / 2.
+        :arg window_type: float (rectangular window), "pyramid" or "circular".
+        :arg tile_shape: shape of tiles passed to add_tile.
+        :arg center_crop: shape of resulting tile after crop.
+        :arg pyvips_tiles: whether to use vips format for tiles,
+                           use png otherwise.
         """
         self.pyvips_tiles = pyvips_tiles
 
@@ -87,10 +118,7 @@ class TileMosaic:
         :param y_pos: y position of upper-left corner.
         """
 
-        # if (tile.height, tile.width) != self.tile_shape:
-        #     raise ValueError('Tile is not the correct shape.')
-
-        # crop borders if necessary.
+        # Crop borders if necessary.
         if self.crop != self.tile_shape:
             if self.pyvips_tiles:
                 tile = tile.crop(tile.width // 2 - self.crop[1] // 2,
@@ -99,7 +127,9 @@ class TileMosaic:
             else:
                 tile = tile[tile.shape[0] // 2 - self.crop[0] // 2:(tile.shape[0] // 2 - self.crop[0] // 2 + self.crop[0]),
                             tile.shape[1] // 2 - self.crop[1] // 2:(tile.shape[1] // 2 - self.crop[1] // 2 + self.crop[1])]
+        # Multiply by weight matrix.
         tile *= self.weights
+        # Save to temporary file using vips format or TIFF.
         if self.pyvips_tiles:
             self.file_names.append(os.path.join(self.tmp_dir.name, f'{x_pos}-{y_pos}.v'))
             tile.write_to_file(self.file_names[-1])
@@ -108,7 +138,10 @@ class TileMosaic:
             imageio.imwrite(self.file_names[-1], tile)
 
     def get_mosaic(self):
-        """return mosaic from tiles."""
+        """Return mosaic from tiles.
+
+        Generate mosaic by inserting tiles to background and summing.
+        """
         result = self.background.copy()
         for file in self.file_names:
             crop = pyvips.Image.new_from_file(file)
